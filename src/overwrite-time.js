@@ -101,6 +101,37 @@ var _setTimeout = function (fn, timeout, ...args) {
   return id;
 };
 
+var _setInterval = function (fn, interval, ...args) {
+  var lastCallId;
+  var id = _idCount;
+  var running = true;
+  var intervalFn = function () {
+    if (fn instanceof Function) {
+      fn.apply(exportObject, args);
+    } else {
+      // according to https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
+      // setInterval should support evaluating strings as code, though it's not recommended
+      globalEval(fn);
+    }
+    if (running) {
+      lastCallId = _setTimeout(intervalFn, interval);
+    }
+  };
+  _intervals[id] = {
+    clear: function () {
+      _clearTimeout(lastCallId);
+      running = false;
+      _intervals[id] = null; // dereference for garbage collection
+    }
+  };
+  _idCount++;
+  lastCallId = _setTimeout(intervalFn, interval);
+  // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
+  // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
+  // can technically be used interchangeably
+  return id;
+};
+
 var _clearTimeout = function (id) {
   // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
   // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
@@ -178,36 +209,7 @@ exportObject.Date.now = exportObject.performance.now = function () {
 };
 exportObject.setTimeout = _setTimeout;
 exportObject.requestAnimationFrame = _requestAnimationFrame;
-exportObject.setInterval = function (fn, interval, ...args) {
-  var lastCallId;
-  var id = _idCount;
-  var running = true;
-  var intervalFn = function () {
-    if (fn instanceof Function) {
-      fn.apply(exportObject, args);
-    } else {
-      // according to https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
-      // setInterval should support evaluating strings as code, though it's not recommended
-      globalEval(fn);
-    }
-    if (running) {
-      lastCallId = _setTimeout(intervalFn, interval);
-    }
-  };
-  _intervals[id] = {
-    clear: function () {
-      _clearTimeout(lastCallId);
-      running = false;
-      _intervals[id] = null; // dereference for garbage collection
-    }
-  };
-  _idCount++;
-  lastCallId = _setTimeout(intervalFn, interval);
-  // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
-  // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
-  // can technically be used interchangeably
-  return id;
-};
+exportObject.setInterval = _setInterval;
 exportObject.cancelAnimationFrame = _cancelAnimationFrame;
 exportObject.clearTimeout = _clearTimeout;
 exportObject.clearInterval = _clearTimeout;
