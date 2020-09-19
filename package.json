@@ -1,7 +1,7 @@
 {
   "name": "timeweb",
   "version": "0.0.2-pre",
-  "description": "",
+  "description": "Overwrite time in browser",
   "repository": {
     "type": "git",
     "url": "https://github.com/tungs/timeweb.git"
@@ -12,10 +12,12 @@
   "main": "index.js",
   "scripts": {
     "build": "rollup -c rollup.config.js",
+    "lint": "eslint *.js './src/**/*.js'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "eslint": "^6.8.0",
     "rollup": "^1.32.1"
   }
 }
