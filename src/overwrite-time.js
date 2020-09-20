@@ -30,51 +30,51 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 var exportObject = window;
-var _virtualTime = Date.now();
-var _startTime = _virtualTime;
-var _oldDate = Date;
+var virtualTime = Date.now();
+var startTime = virtualTime;
+var oldDate = Date;
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
 // window.requestAnimationFrame, window.setTimeout, and window.setInterval
-var _pendingBlocks = [];
-var _intervals = {};
-var _idCount = 1;
-var _sortPendingBlocks = function () {
-  _pendingBlocks = _pendingBlocks.sort(function (a, b) {
+var pendingBlocks = [];
+var intervals = {};
+var idCount = 1;
+var sortPendingBlocks = function () {
+  pendingBlocks = pendingBlocks.sort(function (a, b) {
     if (a.time !== b.time) {
       return a.time - b.time;
     }
     return a.id - b.id;
   });
 };
-var _processNextBlock = function () {
-  if (!_pendingBlocks.length) {
+var processNextBlock = function () {
+  if (!pendingBlocks.length) {
     return null;
   }
-  _sortPendingBlocks();
-  var block = _pendingBlocks.shift();
-  _virtualTime = block.time;
+  sortPendingBlocks();
+  var block = pendingBlocks.shift();
+  virtualTime = block.time;
   block.fn.apply(exportObject, block.args);
 };
-var _processUntilTime = function (ms) {
-  // We should be careful when iterating through _pendingBlocks,
-  // because other methods (i.e. _sortPendingBlocks and _clearTimeout)
-  // create new references to _pendingBlocks
-  _sortPendingBlocks();
-  while (_pendingBlocks.length && _pendingBlocks[0].time <= _startTime + ms) {
-    _processNextBlock();
-    _sortPendingBlocks();
+var processUntilTime = function (ms) {
+  // We should be careful when iterating through pendingBlocks,
+  // because other methods (i.e. sortPendingBlocks and _clearTimeout)
+  // create new references to pendingBlocks
+  sortPendingBlocks();
+  while (pendingBlocks.length && pendingBlocks[0].time <= startTime + ms) {
+    processNextBlock();
+    sortPendingBlocks();
   }
   // TODO: maybe wait a little while for possible promises to resolve?
-  _virtualTime = _startTime + ms;
+  virtualTime = startTime + ms;
 };
 // By assigning eval to a variable, it is invoked indirectly,
 // therefor it runs in the global scope (outside the scope of internal variables)
-// See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/GLobal_Objects/eval
+// See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval
 // under the `Description` section
 var globalEval = eval;
 var _setTimeout = function (fn, timeout, ...args) {
-  var id = _idCount;
+  var id = idCount;
   var blockFn;
   if (fn instanceof Function) {
     blockFn = fn;
@@ -91,19 +91,19 @@ var _setTimeout = function (fn, timeout, ...args) {
     // setTimeout doesn't usually execute code immediately
     timeout = 1;
   }
-  _pendingBlocks.push({
-    time: timeout + _virtualTime,
+  pendingBlocks.push({
+    time: timeout + virtualTime,
     id: id,
     fn: blockFn,
     args: args
   });
-  _idCount++;
+  idCount++;
   return id;
 };
 
 var _setInterval = function (fn, interval, ...args) {
   var lastCallId;
-  var id = _idCount;
+  var id = idCount;
   var running = true;
   var intervalFn = function () {
     if (fn instanceof Function) {
@@ -117,14 +117,14 @@ var _setInterval = function (fn, interval, ...args) {
       lastCallId = _setTimeout(intervalFn, interval);
     }
   };
-  _intervals[id] = {
+  intervals[id] = {
     clear: function () {
       _clearTimeout(lastCallId);
       running = false;
-      _intervals[id] = null; // dereference for garbage collection
+      intervals[id] = null; // dereference for garbage collection
     }
   };
-  _idCount++;
+  idCount++;
   lastCallId = _setTimeout(intervalFn, interval);
   // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
   // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
@@ -136,51 +136,51 @@ var _clearTimeout = function (id) {
   // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
   // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
   // can technically be used interchangeably
-  if (_intervals[id]) {
-    _intervals[id].clear();
+  if (intervals[id]) {
+    intervals[id].clear();
   }
-  // We should be careful when creating a new reference for _pendingBlocks,
-  // (e.g. `_pendingBlocks = _pendingBlocks.filter...`), because _clearTimeout
-  // can be called while iterating through _pendingBlocks
-  _pendingBlocks = _pendingBlocks.filter(function (block) {
+  // We should be careful when creating a new reference for pendingBlocks,
+  // (e.g. `pendingBlocks = pendingBlocks.filter...`), because _clearTimeout
+  // can be called while iterating through pendingBlocks
+  pendingBlocks = pendingBlocks.filter(function (block) {
     return block.id !== id;
   });
 };
 
-var _animationFrameBlocks = [];
-var _currentAnimationFrameBlocks = [];
+var animationFrameBlocks = [];
+var currentAnimationFrameBlocks = [];
 var _requestAnimationFrame = function (fn) {
-  var id = _idCount;
-  _idCount++;
-  _animationFrameBlocks.push({
+  var id = idCount;
+  idCount++;
+  animationFrameBlocks.push({
     id: id,
     fn: fn
   });
   return id;
 };
 var _cancelAnimationFrame = function (id) {
-  _animationFrameBlocks = _animationFrameBlocks.filter(function (block) {
+  animationFrameBlocks = animationFrameBlocks.filter(function (block) {
     return block.id !== id;
   });
-  _currentAnimationFrameBlocks = _currentAnimationFrameBlocks.filter(function (block) {
+  currentAnimationFrameBlocks = currentAnimationFrameBlocks.filter(function (block) {
     return block.id !== id;
   });
 };
-var _runAnimationFrames = function () {
+var runAnimationFrames = function () {
   // since requestAnimationFrame usually adds new frames,
   // we want to these new ones to be separated from the
   // currently run frames
-  _currentAnimationFrameBlocks = _animationFrameBlocks;
-  _animationFrameBlocks = [];
-  // We should be careful when iterating through _currentAnimationFrameBlocks,
-  // because _cancelAnimationFrame creates a new reference to _currentAnimationFrameBlocks
+  currentAnimationFrameBlocks = animationFrameBlocks;
+  animationFrameBlocks = [];
+  // We should be careful when iterating through currentAnimationFrameBlocks,
+  // because _cancelAnimationFrame creates a new reference to currentAnimationFrameBlocks
   var block;
-  while (_currentAnimationFrameBlocks.length) {
-    block = _currentAnimationFrameBlocks.shift();
+  while (currentAnimationFrameBlocks.length) {
+    block = currentAnimationFrameBlocks.shift();
     // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
     // the passed argument to the callback should be the starting time of the
     // chunk of requestAnimationFrame callbacks that are called for that particular frame
-    block.fn(_virtualTime);
+    block.fn(virtualTime);
   }
 };
 
@@ -195,17 +195,17 @@ exportObject._timeweb_oldClearInterval = exportObject.clearInterval;
 exportObject._timeweb_oldPerformanceNow = exportObject.performance.now;
 
 // overwriting built-in functions...
-exportObject.Date = class Date extends _oldDate {
+exportObject.Date = class Date extends oldDate {
   constructor() {
     if (!arguments.length) {
-      super(_virtualTime);
+      super(virtualTime);
     } else {
       super(...arguments);
     }
   }
 };
 exportObject.Date.now = exportObject.performance.now = function () {
-  return _virtualTime;
+  return virtualTime;
 };
 exportObject.setTimeout = _setTimeout;
 exportObject.requestAnimationFrame = _requestAnimationFrame;
@@ -214,6 +214,6 @@ exportObject.cancelAnimationFrame = _cancelAnimationFrame;
 exportObject.clearTimeout = _clearTimeout;
 exportObject.clearInterval = _clearTimeout;
 // exported custom functions
-exportObject._timeweb_processNextBlock = _processNextBlock;
-exportObject._timeweb_processUntilTime  = _processUntilTime;
-exportObject._timeweb_runAnimationFrames = _runAnimationFrames;
+exportObject._timeweb_processNextBlock = processNextBlock;
+exportObject._timeweb_processUntilTime  = processUntilTime;
+exportObject._timeweb_runAnimationFrames = runAnimationFrames;
