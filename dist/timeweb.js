@@ -224,12 +224,15 @@
   exportObject._timeweb_processUntilTime  = processUntilTime;
   exportObject._timeweb_runAnimationFrames = runAnimationFrames;
 
+  var version = "0.0.2";
+
   function goTo(ms) {
     window._timeweb_processUntilTime(ms);
     window._timeweb_runAnimationFrames(ms);
   }
 
   exports.goTo = goTo;
+  exports.version = version;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
