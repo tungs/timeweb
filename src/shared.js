@@ -1,3 +1,5 @@
+export var exportObject = window;
+
 var virtualTime = Date.now();
 
 export function setVirtualTime(time) {
