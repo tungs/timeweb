@@ -224,7 +224,7 @@
   exportObject._timeweb_processUntilTime  = processUntilTime;
   exportObject._timeweb_runAnimationFrames = runAnimationFrames;
 
-  var version = "0.0.2";
+  var version = "0.0.3-prerelease";
 
   function goTo(ms) {
     window._timeweb_processUntilTime(ms);
