@@ -1,8 +1,8 @@
-import { _requestAnimationFrame, _cancelAnimationFrame, runAnimationFrames } from './animation-frames.js';
 import { getNewId, virtualNow, setVirtualTime } from './shared.js';
+import { _requestAnimationFrame, _cancelAnimationFrame, runAnimationFrames } from './animation-frames.js';
+import { _Date } from './date.js';
 var exportObject = window;
 var startTime = virtualNow();
-var oldDate = Date;
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
 // window.requestAnimationFrame, window.setTimeout, and window.setInterval
@@ -125,16 +125,8 @@ exportObject._timeweb_oldClearInterval = exportObject.clearInterval;
 exportObject._timeweb_oldPerformanceNow = exportObject.performance.now;
 
 // overwriting built-in functions...
-exportObject.Date = class Date extends oldDate {
-  constructor() {
-    if (!arguments.length) {
-      super(virtualNow());
-    } else {
-      super(...arguments);
-    }
-  }
-};
-exportObject.Date.now = exportObject.performance.now = virtualNow;
+exportObject.Date = _Date;
+exportObject.performance.now = virtualNow;
 exportObject.setTimeout = _setTimeout;
 exportObject.requestAnimationFrame = _requestAnimationFrame;
 exportObject.setInterval = _setInterval;
