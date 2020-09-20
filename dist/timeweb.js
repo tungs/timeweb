@@ -1,8 +1,93 @@
+/**
+ *
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2020, Steve Tung
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ *
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ *
+ * * Neither the name of the copyright holder nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
   (global = global || self, factory(global.timeweb = {}));
 }(this, (function (exports) { 'use strict';
+
+  var virtualTime = Date.now();
+
+  function setVirtualTime(time) {
+    virtualTime = time;
+  }
+
+  function virtualNow() {
+    return virtualTime;
+  }
+
+  var idCount = 1;
+
+  function getNewId() {
+    return idCount++;
+  }
+
+  var animationFrameBlocks = [];
+  var currentAnimationFrameBlocks = [];
+  function _requestAnimationFrame(fn) {
+    var id = getNewId();
+    animationFrameBlocks.push({
+      id: id,
+      fn: fn
+    });
+    return id;
+  }
+  function _cancelAnimationFrame(id) {
+    animationFrameBlocks = animationFrameBlocks.filter(function (block) {
+      return block.id !== id;
+    });
+    currentAnimationFrameBlocks = currentAnimationFrameBlocks.filter(function (block) {
+      return block.id !== id;
+    });
+  }
+  function runAnimationFrames() {
+    // since requestAnimationFrame usually adds new frames,
+    // we want to these new ones to be separated from the
+    // currently run frames
+    currentAnimationFrameBlocks = animationFrameBlocks;
+    animationFrameBlocks = [];
+    // We should be careful when iterating through currentAnimationFrameBlocks,
+    // because _cancelAnimationFrame creates a new reference to currentAnimationFrameBlocks
+    var block;
+    while (currentAnimationFrameBlocks.length) {
+      block = currentAnimationFrameBlocks.shift();
+      // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
+      // the passed argument to the callback should be the starting time of the
+      // chunk of requestAnimationFrame callbacks that are called for that particular frame
+      block.fn(virtualNow());
+    }
+  }
 
   /**
    * BSD 3-Clause License
@@ -36,15 +121,13 @@
    * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    */
   var exportObject = window;
-  var virtualTime = Date.now();
-  var startTime = virtualTime;
+  var startTime = virtualNow();
   var oldDate = Date;
   // a block is a segment of blocking code, wrapped in a function
   // to be run at a certain virtual time. They're created by
   // window.requestAnimationFrame, window.setTimeout, and window.setInterval
   var pendingBlocks = [];
   var intervals = {};
-  var idCount = 1;
   var sortPendingBlocks = function () {
     pendingBlocks = pendingBlocks.sort(function (a, b) {
       if (a.time !== b.time) {
@@ -59,7 +142,7 @@
     }
     sortPendingBlocks();
     var block = pendingBlocks.shift();
-    virtualTime = block.time;
+    setVirtualTime(block.time);
     block.fn.apply(exportObject, block.args);
   };
   var processUntilTime = function (ms) {
@@ -72,7 +155,7 @@
       sortPendingBlocks();
     }
     // TODO: maybe wait a little while for possible promises to resolve?
-    virtualTime = startTime + ms;
+    setVirtualTime(startTime + ms);
   };
   // By assigning eval to a variable, it is invoked indirectly,
   // therefor it runs in the global scope (outside the scope of internal variables)
@@ -80,7 +163,7 @@
   // under the `Description` section
   var globalEval = eval;
   var _setTimeout = function (fn, timeout, ...args) {
-    var id = idCount;
+    var id = getNewId();
     var blockFn;
     if (fn instanceof Function) {
       blockFn = fn;
@@ -98,18 +181,17 @@
       timeout = 1;
     }
     pendingBlocks.push({
-      time: timeout + virtualTime,
+      time: timeout + virtualNow(),
       id: id,
       fn: blockFn,
       args: args
     });
-    idCount++;
     return id;
   };
 
   var _setInterval = function (fn, interval, ...args) {
     var lastCallId;
-    var id = idCount;
+    var id = getNewId();
     var running = true;
     var intervalFn = function () {
       if (fn instanceof Function) {
@@ -130,7 +212,6 @@
         intervals[id] = null; // dereference for garbage collection
       }
     };
-    idCount++;
     lastCallId = _setTimeout(intervalFn, interval);
     // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
     // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
@@ -153,43 +234,6 @@
     });
   };
 
-  var animationFrameBlocks = [];
-  var currentAnimationFrameBlocks = [];
-  var _requestAnimationFrame = function (fn) {
-    var id = idCount;
-    idCount++;
-    animationFrameBlocks.push({
-      id: id,
-      fn: fn
-    });
-    return id;
-  };
-  var _cancelAnimationFrame = function (id) {
-    animationFrameBlocks = animationFrameBlocks.filter(function (block) {
-      return block.id !== id;
-    });
-    currentAnimationFrameBlocks = currentAnimationFrameBlocks.filter(function (block) {
-      return block.id !== id;
-    });
-  };
-  var runAnimationFrames = function () {
-    // since requestAnimationFrame usually adds new frames,
-    // we want to these new ones to be separated from the
-    // currently run frames
-    currentAnimationFrameBlocks = animationFrameBlocks;
-    animationFrameBlocks = [];
-    // We should be careful when iterating through currentAnimationFrameBlocks,
-    // because _cancelAnimationFrame creates a new reference to currentAnimationFrameBlocks
-    var block;
-    while (currentAnimationFrameBlocks.length) {
-      block = currentAnimationFrameBlocks.shift();
-      // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
-      // the passed argument to the callback should be the starting time of the
-      // chunk of requestAnimationFrame callbacks that are called for that particular frame
-      block.fn(virtualTime);
-    }
-  };
-
   // keeping overwritten objects...
   exportObject._timeweb_oldDate = exportObject.Date;
   exportObject._timeweb_oldSetTimeout = exportObject.setTimeout;
@@ -204,15 +248,13 @@
   exportObject.Date = class Date extends oldDate {
     constructor() {
       if (!arguments.length) {
-        super(virtualTime);
+        super(virtualNow());
       } else {
         super(...arguments);
       }
     }
   };
-  exportObject.Date.now = exportObject.performance.now = function () {
-    return virtualTime;
-  };
+  exportObject.Date.now = exportObject.performance.now = virtualNow;
   exportObject.setTimeout = _setTimeout;
   exportObject.requestAnimationFrame = _requestAnimationFrame;
   exportObject.setInterval = _setInterval;
