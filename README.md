@@ -2,7 +2,7 @@
 **timeweb** is a JavaScript library that overwrites the native time-handling JavaScript functions in a web page, creating a virtual timeline independent of real time.
 
 ## <a name="limitations" href="#limitations">#</a> **timeweb** Limitations
-**timeweb** only overwrites JavaScript functions, so pages where changes occur via other means (e.g. through transitions/animations from CSS rules) will likely not render as intended.
+**timeweb** only overwrites JavaScript functions and rudimentary time-handling for video elements, so pages where changes occur via other means (e.g. through transitions/animations from CSS rules) will likely not render as intended.
 
 ## Read Me Contents
 * [Use](#use)
