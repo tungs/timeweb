@@ -1,6 +1,6 @@
 {
   "name": "timeweb",
-  "version": "0.0.3-prerelease",
+  "version": "0.0.3",
   "description": "Overwrite time in browser",
   "repository": {
     "type": "git",

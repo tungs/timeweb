@@ -519,7 +519,7 @@ exportObject._timeweb_runAnimationFrames = runAnimationFrames;
 exportObject._timeweb_addFramePreparer = addFramePreparer;
 exportObject._timeweb_runFramePreparers = runFramePreparers;
 
-var version = "0.0.3-prerelease";
+var version = "0.0.3";
 
 function goTo(ms) {
   processUntilTime(ms);
