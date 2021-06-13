@@ -1,4 +1,4 @@
-import { virtualNow, exportObject } from './shared.js';
+import { virtualNow, exportObject, exportDocument } from './shared.js';
 import { processNextBlock, processUntilTime, _setTimeout, _setInterval, _clearTimeout } from './timeout-and-interval.js';
 import { _requestAnimationFrame, _cancelAnimationFrame, runAnimationFrames } from './animation-frames.js';
 import { _createElement, _createElementNS } from './create-element.js';
@@ -17,8 +17,8 @@ exportObject._timeweb_oldCancelAnimationFrame = exportObject.cancelAnimationFram
 exportObject._timeweb_oldClearTimeout = exportObject.clearTimeout;
 exportObject._timeweb_oldClearInterval = exportObject.clearInterval;
 exportObject._timeweb_oldPerformanceNow = exportObject.performance.now;
-exportObject._timeweb_oldCreateElement = exportObject.createElement;
-exportObject._timeweb_oldCreateElementNS = exportObject.createElementNS;
+exportDocument._timeweb_oldCreateElement = exportObject.createElement;
+exportDocument._timeweb_oldCreateElementNS = exportObject.createElementNS;
 
 // overwriting built-in functions...
 exportObject.Date = _Date;
@@ -29,8 +29,8 @@ exportObject.setInterval = _setInterval;
 exportObject.cancelAnimationFrame = _cancelAnimationFrame;
 exportObject.clearTimeout = _clearTimeout;
 exportObject.clearInterval = _clearTimeout;
-exportObject.createElement = _createElement;
-exportObject.createElementNS = _createElementNS;
+exportDocument.createElement = _createElement;
+exportDocument.createElementNS = _createElementNS;
 
 // exported custom functions
 exportObject._timeweb_processNextBlock = processNextBlock;

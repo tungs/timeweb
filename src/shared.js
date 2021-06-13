@@ -1,4 +1,5 @@
 export var exportObject = window;
+export var exportDocument = document;
 
 var virtualTime = Date.now();
 
