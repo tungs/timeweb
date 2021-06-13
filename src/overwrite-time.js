@@ -34,7 +34,7 @@ exportDocument.createElementNS = _createElementNS;
 
 // exported custom functions
 exportObject._timeweb_processNextBlock = processNextBlock;
-exportObject._timeweb_processUntilTime  = processUntilTime;
+exportObject._timeweb_processUntilTime = processUntilTime;
 exportObject._timeweb_runAnimationFrames = runAnimationFrames;
 exportObject._timeweb_addFramePreparer = addFramePreparer;
 exportObject._timeweb_runFramePreparers = runFramePreparers;

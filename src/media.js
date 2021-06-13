@@ -141,7 +141,7 @@ export function addMediaNode(node) {
     // we'll also use a virtual setTimeout, since in practice
     // the user may be adding a listener afterwards (see issue #1)
     _setTimeout(function () {
-      node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));      
+      node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));
     });
   }
 }
