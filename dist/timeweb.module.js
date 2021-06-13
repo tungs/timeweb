@@ -413,7 +413,7 @@ function addMediaNode(node) {
     // we'll also use a virtual setTimeout, since in practice
     // the user may be adding a listener afterwards (see issue #1)
     _setTimeout(function () {
-      node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));      
+      node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));
     });
   }
 }
@@ -519,7 +519,7 @@ exportDocument.createElementNS = _createElementNS;
 
 // exported custom functions
 exportObject._timeweb_processNextBlock = processNextBlock;
-exportObject._timeweb_processUntilTime  = processUntilTime;
+exportObject._timeweb_processUntilTime = processUntilTime;
 exportObject._timeweb_runAnimationFrames = runAnimationFrames;
 exportObject._timeweb_addFramePreparer = addFramePreparer;
 exportObject._timeweb_runFramePreparers = runFramePreparers;
