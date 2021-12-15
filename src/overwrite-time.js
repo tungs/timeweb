@@ -5,24 +5,21 @@ import { _createElement, _createElementNS } from './create-element.js';
 import { _Date } from './date.js';
 import { runFramePreparers, addFramePreparer } from './frame-preparers.js';
 import { initializeMediaHandler } from './media.js';
+import { realtimeDate, realtimeSetTimeout, realtimeRequestAnimationFrame, realtimeSetInterval, realtimeCancelAnimationFrame, realtimeClearTimeout, realtimeClearInterval, realtimePerformance, realtimeCreateElement, realtimeCreateElementNS } from './realtime.js';
 
 initializeMediaHandler();
 
 // keeping overwritten objects...
-exportObject._timeweb_oldDate = exportObject.Date;
-exportObject._timeweb_oldSetTimeout = exportObject.setTimeout;
-exportObject._timeweb_oldRequestAnimationFrame = exportObject.requestAnimationFrame;
-exportObject._timeweb_oldSetInterval = exportObject.setInterval;
-exportObject._timeweb_oldCancelAnimationFrame = exportObject.cancelAnimationFrame;
-exportObject._timeweb_oldClearTimeout = exportObject.clearTimeout;
-exportObject._timeweb_oldClearInterval = exportObject.clearInterval;
-let oldPerformanceNow = exportObject.performance.now;
-// performance.now() requires performance to be the caller
-exportObject._timeweb_oldPerformanceNow = function () {
-  return oldPerformanceNow.call(exportObject.performance);
-};
-exportDocument._timeweb_oldCreateElement = exportDocument.createElement;
-exportDocument._timeweb_oldCreateElementNS = exportDocument.createElementNS;
+exportObject._timeweb_oldDate = realtimeDate;
+exportObject._timeweb_oldSetTimeout = realtimeSetTimeout;
+exportObject._timeweb_oldRequestAnimationFrame = realtimeRequestAnimationFrame;
+exportObject._timeweb_oldSetInterval = realtimeSetInterval;
+exportObject._timeweb_oldCancelAnimationFrame = realtimeCancelAnimationFrame;
+exportObject._timeweb_oldClearTimeout = realtimeClearTimeout;
+exportObject._timeweb_oldClearInterval = realtimeClearInterval;
+exportObject._timeweb_oldPerformance = realtimePerformance;
+exportDocument._timeweb_oldCreateElement = realtimeCreateElement;
+exportDocument._timeweb_oldCreateElementNS = realtimeCreateElementNS;
 
 // overwriting built-in functions...
 exportObject.Date = _Date;
