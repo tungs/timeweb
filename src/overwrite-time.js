@@ -16,7 +16,11 @@ exportObject._timeweb_oldSetInterval = exportObject.setInterval;
 exportObject._timeweb_oldCancelAnimationFrame = exportObject.cancelAnimationFrame;
 exportObject._timeweb_oldClearTimeout = exportObject.clearTimeout;
 exportObject._timeweb_oldClearInterval = exportObject.clearInterval;
-exportObject._timeweb_oldPerformanceNow = exportObject.performance.now;
+let oldPerformanceNow = exportObject.performance.now;
+// performance.now() requires performance to be the caller
+exportObject._timeweb_oldPerformanceNow = function () {
+  return oldPerformanceNow.call(exportObject.performance);
+};
 exportDocument._timeweb_oldCreateElement = exportDocument.createElement;
 exportDocument._timeweb_oldCreateElementNS = exportDocument.createElementNS;
 
