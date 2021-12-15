@@ -1,7 +1,7 @@
 import './overwrite-time.js';
 import { processUntilTime } from './timeout-and-interval.js';
 import { runAnimationFrames } from './animation-frames.js';
-import { runFramePreparers } from './frame-preparers.js';
+import { runFramePreparers, addFramePreparer } from './frame-preparers.js';
 export { realtime } from './realtime.js';
 // exports to the `timeweb` module/object
 // see overwrite-time.js to see exports written
@@ -12,3 +12,7 @@ export function goTo(ms) {
   runAnimationFrames(ms);
   return runFramePreparers(ms);
 }
+
+export {
+  processUntilTime, runAnimationFrames, addFramePreparer, runFramePreparers
+};
