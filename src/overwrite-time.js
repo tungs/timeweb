@@ -1,3 +1,6 @@
+// Since this file overwrites properties of the exportObject that other files
+// assign from, it's important that those other files run first
+// In particular `realtime.js` is one of those files
 import { virtualNow, exportObject, exportDocument } from './shared.js';
 import { processNextBlock, processUntilTime, _setTimeout, _setInterval, _clearTimeout } from './timeout-and-interval.js';
 import { _requestAnimationFrame, _cancelAnimationFrame, runAnimationFrames } from './animation-frames.js';

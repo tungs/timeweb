@@ -274,14 +274,29 @@ function runFramePreparers(time, cb) {
   return Promise.resolve();
 }
 
+const processedProperty = '_timeweb_customized';
+const realtimeProperty = '_timeweb_realtime';
+
+function markAsProcessed(element, processed = true) {
+  element[processedProperty] = processed;
+}
+
+function markAsRealtime(element, realtime = true) {
+  element[realtimeProperty] = realtime;
+}
+
+function shouldBeProcessed(element) {
+  return !element[processedProperty] && !element[realtimeProperty];
+}
+
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
 var currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
 function addMediaNode(node) {
-  if (node._timeweb_customized) { // this function has already been called
+  if (!shouldBeProcessed(node)) {
     return;
   }
-  node._timeweb_customized = true;
+  markAsProcessed(node);
   var lastUpdated = virtualNow();
   var precisionTime = node.currentTime * 1000;
   var pendingSeeked;
@@ -491,19 +506,62 @@ function initializeMediaHandler() {
   });
 }
 
+// Note that since realtime depends on assigning from exportObject and exportDocument
+let realtimeDate = exportObject.Date;
+let realtimeSetTimeout = exportObject.setTimeout.bind(exportObject);
+let realtimeRequestAnimationFrame = exportObject.requestAnimationFrame.bind(exportObject);
+let realtimeSetInterval = exportObject.setInterval.bind(exportObject);
+let realtimeCancelAnimationFrame = exportObject.cancelAnimationFrame.bind(exportObject);
+let realtimeClearTimeout = exportObject.clearTimeout.bind(exportObject);
+let realtimeClearInterval = exportObject.clearInterval.bind(exportObject);
+let oldPerformanceNow = exportObject.performance.now;
+let oldPerformance = exportObject.performance;
+// performance.now() requires performance to be the caller
+let realtimePerformance = {
+  now: oldPerformanceNow.bind(oldPerformance)
+};
+let oldCreateElement$1 = exportDocument.createElement;
+let oldCreateElementNS$1 = exportDocument.createElementNS;
+
+let realtimeCreateElement = function () {
+  let element = oldCreateElement$1.apply(exportDocument, arguments);
+  markAsRealtime(element);
+  return element;
+};
+
+let realtimeCreateElementNS = function () {
+  let element = oldCreateElementNS$1.apply(exportDocument, arguments);
+  markAsRealtime(element);
+  return element;
+};
+
+let realtime = {
+  Date: realtimeDate,
+  setTimeout: realtimeSetTimeout,
+  requestAnimationFrame: realtimeRequestAnimationFrame,
+  setInterval: realtimeSetInterval,
+  cancelAnimationFrame: realtimeCancelAnimationFrame,
+  clearTimeout: realtimeClearTimeout,
+  performance: realtimePerformance,
+  createElement: realtimeCreateElement,
+  createElementNS: realtimeCreateElementNS
+};
+
+// Since this file overwrites properties of the exportObject that other files
+
 initializeMediaHandler();
 
 // keeping overwritten objects...
-exportObject._timeweb_oldDate = exportObject.Date;
-exportObject._timeweb_oldSetTimeout = exportObject.setTimeout;
-exportObject._timeweb_oldRequestAnimationFrame = exportObject.requestAnimationFrame;
-exportObject._timeweb_oldSetInterval = exportObject.setInterval;
-exportObject._timeweb_oldCancelAnimationFrame = exportObject.cancelAnimationFrame;
-exportObject._timeweb_oldClearTimeout = exportObject.clearTimeout;
-exportObject._timeweb_oldClearInterval = exportObject.clearInterval;
-exportObject._timeweb_oldPerformanceNow = exportObject.performance.now;
-exportDocument._timeweb_oldCreateElement = exportDocument.createElement;
-exportDocument._timeweb_oldCreateElementNS = exportDocument.createElementNS;
+exportObject._timeweb_oldDate = realtimeDate;
+exportObject._timeweb_oldSetTimeout = realtimeSetTimeout;
+exportObject._timeweb_oldRequestAnimationFrame = realtimeRequestAnimationFrame;
+exportObject._timeweb_oldSetInterval = realtimeSetInterval;
+exportObject._timeweb_oldCancelAnimationFrame = realtimeCancelAnimationFrame;
+exportObject._timeweb_oldClearTimeout = realtimeClearTimeout;
+exportObject._timeweb_oldClearInterval = realtimeClearInterval;
+exportObject._timeweb_oldPerformance = realtimePerformance;
+exportDocument._timeweb_oldCreateElement = realtimeCreateElement;
+exportDocument._timeweb_oldCreateElementNS = realtimeCreateElementNS;
 
 // overwriting built-in functions...
 exportObject.Date = _Date;
@@ -532,4 +590,4 @@ function goTo(ms) {
   return runFramePreparers(ms);
 }
 
-export { goTo, version };
+export { addFramePreparer, goTo, processUntilTime, realtime, runAnimationFrames, runFramePreparers, version };
