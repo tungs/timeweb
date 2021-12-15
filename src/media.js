@@ -2,14 +2,15 @@ import { addFramePreparer } from './frame-preparers.js';
 import { virtualNow } from './shared.js';
 import { addElementCreateListener, addElementNSCreateListener } from './create-element.js';
 import { _setTimeout } from './timeout-and-interval.js';
+import { markAsProcessed, shouldBeProcessed } from './element.js';
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
 var currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
 export function addMediaNode(node) {
-  if (node._timeweb_customized) { // this function has already been called
+  if (!shouldBeProcessed(node)) {
     return;
   }
-  node._timeweb_customized = true;
+  markAsProcessed(node);
   var lastUpdated = virtualNow();
   var precisionTime = node.currentTime * 1000;
   var pendingSeeked;
