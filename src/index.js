@@ -9,7 +9,7 @@ export { realtime } from './realtime.js';
 export { version } from '../package.json';
 export function goTo(ms) {
   processUntilTime(ms);
-  runAnimationFrames(ms);
+  runAnimationFrames();
   return runFramePreparers(ms);
 }
 
