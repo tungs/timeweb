@@ -563,7 +563,7 @@ exportObject.clearInterval = _clearTimeout;
 exportDocument.createElement = _createElement;
 exportDocument.createElementNS = _createElementNS;
 
-var version = "0.2.0";
+var version = "0.2.1-prerelease";
 
 function goTo(ms) {
   processUntilTime(ms);
