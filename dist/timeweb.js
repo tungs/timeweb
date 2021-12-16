@@ -280,7 +280,7 @@
     return Promise.resolve();
   }
 
-  const processedProperty = '_timeweb_customized';
+  const processedProperty = '_timeweb_processed';
   const realtimeProperty = '_timeweb_realtime';
 
   function markAsProcessed(element, processed = true) {
@@ -569,7 +569,7 @@
   exportDocument.createElement = _createElement;
   exportDocument.createElementNS = _createElementNS;
 
-  var version = "0.2.0-prerelease";
+  var version = "0.2.0";
 
   function goTo(ms) {
     processUntilTime(ms);
