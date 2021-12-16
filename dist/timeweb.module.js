@@ -551,18 +551,6 @@ let realtime = {
 
 initializeMediaHandler();
 
-// keeping overwritten objects...
-exportObject._timeweb_oldDate = realtimeDate;
-exportObject._timeweb_oldSetTimeout = realtimeSetTimeout;
-exportObject._timeweb_oldRequestAnimationFrame = realtimeRequestAnimationFrame;
-exportObject._timeweb_oldSetInterval = realtimeSetInterval;
-exportObject._timeweb_oldCancelAnimationFrame = realtimeCancelAnimationFrame;
-exportObject._timeweb_oldClearTimeout = realtimeClearTimeout;
-exportObject._timeweb_oldClearInterval = realtimeClearInterval;
-exportObject._timeweb_oldPerformance = realtimePerformance;
-exportDocument._timeweb_oldCreateElement = realtimeCreateElement;
-exportDocument._timeweb_oldCreateElementNS = realtimeCreateElementNS;
-
 // overwriting built-in functions...
 exportObject.Date = _Date;
 exportObject.performance.now = virtualNow;
@@ -574,13 +562,6 @@ exportObject.clearTimeout = _clearTimeout;
 exportObject.clearInterval = _clearTimeout;
 exportDocument.createElement = _createElement;
 exportDocument.createElementNS = _createElementNS;
-
-// exported custom functions
-exportObject._timeweb_processNextBlock = processNextBlock;
-exportObject._timeweb_processUntilTime = processUntilTime;
-exportObject._timeweb_runAnimationFrames = runAnimationFrames;
-exportObject._timeweb_addFramePreparer = addFramePreparer;
-exportObject._timeweb_runFramePreparers = runFramePreparers;
 
 var version = "0.2.0-prerelease";
 
