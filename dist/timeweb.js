@@ -588,7 +588,7 @@
   exportObject._timeweb_addFramePreparer = addFramePreparer;
   exportObject._timeweb_runFramePreparers = runFramePreparers;
 
-  var version = "0.1.2";
+  var version = "0.2.0-prerelease";
 
   function goTo(ms) {
     processUntilTime(ms);
