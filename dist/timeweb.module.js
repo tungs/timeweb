@@ -506,6 +506,22 @@ function initializeMediaHandler() {
   });
 }
 
+// Since this file overwrites properties of the exportObject that other files
+
+initializeMediaHandler();
+
+// overwriting built-in functions...
+exportObject.Date = VirtualDate;
+exportObject.performance.now = virtualNow;
+exportObject.setTimeout = virtualSetTimeout;
+exportObject.requestAnimationFrame = virtualRequestAnimationFrame;
+exportObject.setInterval = virtualSetInterval;
+exportObject.cancelAnimationFrame = virtualCancelAnimationFrame;
+exportObject.clearTimeout = virtualClearTimeout;
+exportObject.clearInterval = virtualClearTimeout;
+exportDocument.createElement = virtualCreateElement;
+exportDocument.createElementNS = virtualCreateElementNS;
+
 // Note that since realtime depends on assigning from exportObject and exportDocument
 let realtimeDate = exportObject.Date;
 let realtimeSetTimeout = exportObject.setTimeout.bind(exportObject);
@@ -546,22 +562,6 @@ let realtime = {
   createElement: realtimeCreateElement,
   createElementNS: realtimeCreateElementNS
 };
-
-// Since this file overwrites properties of the exportObject that other files
-
-initializeMediaHandler();
-
-// overwriting built-in functions...
-exportObject.Date = VirtualDate;
-exportObject.performance.now = virtualNow;
-exportObject.setTimeout = virtualSetTimeout;
-exportObject.requestAnimationFrame = virtualRequestAnimationFrame;
-exportObject.setInterval = virtualSetInterval;
-exportObject.cancelAnimationFrame = virtualCancelAnimationFrame;
-exportObject.clearTimeout = virtualClearTimeout;
-exportObject.clearInterval = virtualClearTimeout;
-exportDocument.createElement = virtualCreateElement;
-exportDocument.createElementNS = virtualCreateElementNS;
 
 var version = "0.2.1-prerelease";
 
