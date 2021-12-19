@@ -12,4 +12,3 @@ export function markAsRealtime(element, realtime = true) {
 export function shouldBeProcessed(element) {
   return !element[processedProperty] && !element[realtimeProperty];
 }
-

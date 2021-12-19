@@ -2,7 +2,7 @@ import { getNewId, virtualNow } from './shared.js';
 
 var animationFrameBlocks = [];
 var currentAnimationFrameBlocks = [];
-export function _requestAnimationFrame(fn) {
+export function virtualRequestAnimationFrame(fn) {
   var id = getNewId();
   animationFrameBlocks.push({
     id: id,
@@ -10,7 +10,7 @@ export function _requestAnimationFrame(fn) {
   });
   return id;
 }
-export function _cancelAnimationFrame(id) {
+export function virtualCancelAnimationFrame(id) {
   animationFrameBlocks = animationFrameBlocks.filter(function (block) {
     return block.id !== id;
   });
@@ -25,7 +25,7 @@ export function runAnimationFrames() {
   currentAnimationFrameBlocks = animationFrameBlocks;
   animationFrameBlocks = [];
   // We should be careful when iterating through currentAnimationFrameBlocks,
-  // because _cancelAnimationFrame creates a new reference to currentAnimationFrameBlocks
+  // because virtualCancelAnimationFrame creates a new reference to currentAnimationFrameBlocks
   var block;
   while (currentAnimationFrameBlocks.length) {
     block = currentAnimationFrameBlocks.shift();

@@ -1,7 +1,7 @@
 import { addFramePreparer } from './frame-preparers.js';
 import { virtualNow } from './shared.js';
 import { addElementCreateListener, addElementNSCreateListener } from './create-element.js';
-import { _setTimeout } from './timeout-and-interval.js';
+import { virtualSetTimeout } from './timeout-and-interval.js';
 import { markAsProcessed, shouldBeProcessed } from './element.js';
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
@@ -141,7 +141,7 @@ export function addMediaNode(node) {
     // now we'll dispatch a `play` event, which also covers `autoplay` media
     // we'll also use a virtual setTimeout, since in practice
     // the user may be adding a listener afterwards (see issue #1)
-    _setTimeout(function () {
+    virtualSetTimeout(function () {
       node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));
     });
   }

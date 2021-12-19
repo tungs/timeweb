@@ -1,7 +1,7 @@
 import { virtualNow } from './shared.js';
 
 var oldDate = Date;
-export var _Date = class Date extends oldDate {
+export var VirtualDate = class Date extends oldDate {
   constructor() {
     if (!arguments.length) {
       super(virtualNow());
@@ -10,4 +10,4 @@ export var _Date = class Date extends oldDate {
     }
   }
 };
-_Date.now = virtualNow;
+VirtualDate.now = virtualNow;

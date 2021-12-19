@@ -2,7 +2,7 @@ var elementCreateListeners = [];
 var elementNSCreateListeners = [];
 
 var oldCreateElement = document.createElement;
-export function _createElement(tagName, options) {
+export function virtualCreateElement(tagName, options) {
   var element = oldCreateElement.call(document, tagName, options);
   elementCreateListeners.forEach(function (listener) {
     listener(element, tagName);
@@ -15,7 +15,7 @@ export function addElementCreateListener(listener) {
 }
 
 var oldCreateElementNS = document.createElementNS;
-export function _createElementNS(ns, qualifiedName, options) {
+export function virtualCreateElementNS(ns, qualifiedName, options) {
   var element = oldCreateElementNS.call(document, ns, qualifiedName, options);
   elementNSCreateListeners.forEach(function (listener) {
     listener(element, qualifiedName);

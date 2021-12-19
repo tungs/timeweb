@@ -26,7 +26,7 @@ export function processNextBlock() {
 
 export function processUntilTime(ms) {
   // We should be careful when iterating through pendingBlocks,
-  // because other methods (i.e. sortPendingBlocks and _clearTimeout)
+  // because other methods (i.e. sortPendingBlocks and virtualClearTimeout)
   // create new references to pendingBlocks
   sortPendingBlocks();
   while (pendingBlocks.length && pendingBlocks[0].time <= startTime + ms) {
@@ -42,7 +42,7 @@ export function processUntilTime(ms) {
 // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval
 // under the `Description` section
 var globalEval = eval;
-export function _setTimeout(fn, timeout, ...args) {
+export function virtualSetTimeout(fn, timeout, ...args) {
   var id = getNewId();
   var blockFn;
   if (fn instanceof Function) {
@@ -69,7 +69,7 @@ export function _setTimeout(fn, timeout, ...args) {
   return id;
 }
 
-export function _setInterval(fn, interval, ...args) {
+export function virtualSetInterval(fn, interval, ...args) {
   var lastCallId;
   var id = getNewId();
   var running = true;
@@ -82,24 +82,24 @@ export function _setInterval(fn, interval, ...args) {
       globalEval(fn);
     }
     if (running) {
-      lastCallId = _setTimeout(intervalFn, interval);
+      lastCallId = virtualSetTimeout(intervalFn, interval);
     }
   };
   intervals[id] = {
     clear: function () {
-      _clearTimeout(lastCallId);
+      virtualClearTimeout(lastCallId);
       running = false;
       intervals[id] = null; // dereference for garbage collection
     }
   };
-  lastCallId = _setTimeout(intervalFn, interval);
+  lastCallId = virtualSetTimeout(intervalFn, interval);
   // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
   // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
   // can technically be used interchangeably
   return id;
 }
 
-export function _clearTimeout(id) {
+export function virtualClearTimeout(id) {
   // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
   // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
   // can technically be used interchangeably
@@ -107,7 +107,7 @@ export function _clearTimeout(id) {
     intervals[id].clear();
   }
   // We should be careful when creating a new reference for pendingBlocks,
-  // (e.g. `pendingBlocks = pendingBlocks.filter...`), because _clearTimeout
+  // (e.g. `pendingBlocks = pendingBlocks.filter...`), because virtualClearTimeout
   // can be called while iterating through pendingBlocks
   pendingBlocks = pendingBlocks.filter(function (block) {
     return block.id !== id;

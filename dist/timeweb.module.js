@@ -77,7 +77,7 @@ function processNextBlock() {
 
 function processUntilTime(ms) {
   // We should be careful when iterating through pendingBlocks,
-  // because other methods (i.e. sortPendingBlocks and _clearTimeout)
+  // because other methods (i.e. sortPendingBlocks and virtualClearTimeout)
   // create new references to pendingBlocks
   sortPendingBlocks();
   while (pendingBlocks.length && pendingBlocks[0].time <= startTime + ms) {
@@ -93,7 +93,7 @@ function processUntilTime(ms) {
 // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval
 // under the `Description` section
 var globalEval = eval;
-function _setTimeout(fn, timeout, ...args) {
+function virtualSetTimeout(fn, timeout, ...args) {
   var id = getNewId();
   var blockFn;
   if (fn instanceof Function) {
@@ -120,7 +120,7 @@ function _setTimeout(fn, timeout, ...args) {
   return id;
 }
 
-function _setInterval(fn, interval, ...args) {
+function virtualSetInterval(fn, interval, ...args) {
   var lastCallId;
   var id = getNewId();
   var running = true;
@@ -133,24 +133,24 @@ function _setInterval(fn, interval, ...args) {
       globalEval(fn);
     }
     if (running) {
-      lastCallId = _setTimeout(intervalFn, interval);
+      lastCallId = virtualSetTimeout(intervalFn, interval);
     }
   };
   intervals[id] = {
     clear: function () {
-      _clearTimeout(lastCallId);
+      virtualClearTimeout(lastCallId);
       running = false;
       intervals[id] = null; // dereference for garbage collection
     }
   };
-  lastCallId = _setTimeout(intervalFn, interval);
+  lastCallId = virtualSetTimeout(intervalFn, interval);
   // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
   // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
   // can technically be used interchangeably
   return id;
 }
 
-function _clearTimeout(id) {
+function virtualClearTimeout(id) {
   // according to https://developer.mozilla.org/en-US-docs/Web/API/WindowOrWorkerGlobalScope/setInterval,
   // setInterval and setTimeout share the same pool of IDs, and clearInterval and clearTimeout
   // can technically be used interchangeably
@@ -158,7 +158,7 @@ function _clearTimeout(id) {
     intervals[id].clear();
   }
   // We should be careful when creating a new reference for pendingBlocks,
-  // (e.g. `pendingBlocks = pendingBlocks.filter...`), because _clearTimeout
+  // (e.g. `pendingBlocks = pendingBlocks.filter...`), because virtualClearTimeout
   // can be called while iterating through pendingBlocks
   pendingBlocks = pendingBlocks.filter(function (block) {
     return block.id !== id;
@@ -167,7 +167,7 @@ function _clearTimeout(id) {
 
 var animationFrameBlocks = [];
 var currentAnimationFrameBlocks = [];
-function _requestAnimationFrame(fn) {
+function virtualRequestAnimationFrame(fn) {
   var id = getNewId();
   animationFrameBlocks.push({
     id: id,
@@ -175,7 +175,7 @@ function _requestAnimationFrame(fn) {
   });
   return id;
 }
-function _cancelAnimationFrame(id) {
+function virtualCancelAnimationFrame(id) {
   animationFrameBlocks = animationFrameBlocks.filter(function (block) {
     return block.id !== id;
   });
@@ -190,7 +190,7 @@ function runAnimationFrames() {
   currentAnimationFrameBlocks = animationFrameBlocks;
   animationFrameBlocks = [];
   // We should be careful when iterating through currentAnimationFrameBlocks,
-  // because _cancelAnimationFrame creates a new reference to currentAnimationFrameBlocks
+  // because virtualCancelAnimationFrame creates a new reference to currentAnimationFrameBlocks
   var block;
   while (currentAnimationFrameBlocks.length) {
     block = currentAnimationFrameBlocks.shift();
@@ -205,7 +205,7 @@ var elementCreateListeners = [];
 var elementNSCreateListeners = [];
 
 var oldCreateElement = document.createElement;
-function _createElement(tagName, options) {
+function virtualCreateElement(tagName, options) {
   var element = oldCreateElement.call(document, tagName, options);
   elementCreateListeners.forEach(function (listener) {
     listener(element, tagName);
@@ -218,7 +218,7 @@ function addElementCreateListener(listener) {
 }
 
 var oldCreateElementNS = document.createElementNS;
-function _createElementNS(ns, qualifiedName, options) {
+function virtualCreateElementNS(ns, qualifiedName, options) {
   var element = oldCreateElementNS.call(document, ns, qualifiedName, options);
   elementNSCreateListeners.forEach(function (listener) {
     listener(element, qualifiedName);
@@ -231,7 +231,7 @@ function addElementNSCreateListener(listener) {
 }
 
 var oldDate = Date;
-var _Date = class Date extends oldDate {
+var VirtualDate = class Date extends oldDate {
   constructor() {
     if (!arguments.length) {
       super(virtualNow());
@@ -240,7 +240,7 @@ var _Date = class Date extends oldDate {
     }
   }
 };
-_Date.now = virtualNow;
+VirtualDate.now = virtualNow;
 
 var framePreparers = [];
 // can maybe optimize this to use only callbacks
@@ -427,7 +427,7 @@ function addMediaNode(node) {
     // now we'll dispatch a `play` event, which also covers `autoplay` media
     // we'll also use a virtual setTimeout, since in practice
     // the user may be adding a listener afterwards (see issue #1)
-    _setTimeout(function () {
+    virtualSetTimeout(function () {
       node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));
     });
   }
@@ -552,16 +552,16 @@ let realtime = {
 initializeMediaHandler();
 
 // overwriting built-in functions...
-exportObject.Date = _Date;
+exportObject.Date = VirtualDate;
 exportObject.performance.now = virtualNow;
-exportObject.setTimeout = _setTimeout;
-exportObject.requestAnimationFrame = _requestAnimationFrame;
-exportObject.setInterval = _setInterval;
-exportObject.cancelAnimationFrame = _cancelAnimationFrame;
-exportObject.clearTimeout = _clearTimeout;
-exportObject.clearInterval = _clearTimeout;
-exportDocument.createElement = _createElement;
-exportDocument.createElementNS = _createElementNS;
+exportObject.setTimeout = virtualSetTimeout;
+exportObject.requestAnimationFrame = virtualRequestAnimationFrame;
+exportObject.setInterval = virtualSetInterval;
+exportObject.cancelAnimationFrame = virtualCancelAnimationFrame;
+exportObject.clearTimeout = virtualClearTimeout;
+exportObject.clearInterval = virtualClearTimeout;
+exportDocument.createElement = virtualCreateElement;
+exportDocument.createElementNS = virtualCreateElementNS;
 
 var version = "0.2.1-prerelease";
 
