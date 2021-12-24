@@ -1,5 +1,5 @@
-export var exportObject = window;
-export var exportDocument = document;
+export var exportObject = typeof window !== 'undefined' ? window : self;
+export var exportDocument = typeof document !== 'undefined' ? document: undefined;
 
 var virtualTime = Date.now();
 
