@@ -1,11 +1,11 @@
 import { addFramePreparer } from './frame-preparers.js';
-import { virtualNow } from './shared.js';
+import { virtualNow, exportDocument } from './shared.js';
 import { addElementCreateListener, addElementNSCreateListener } from './create-element.js';
 import { virtualSetTimeout } from './timeout-and-interval.js';
 import { markAsProcessed, shouldBeProcessed } from './element.js';
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
-var currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
+var currentTimePropertyDescriptor;
 export function addMediaNode(node) {
   if (!shouldBeProcessed(node)) {
     return;
@@ -183,7 +183,7 @@ var mediaObserver = new MutationObserver(function (mutationsList) {
 });
 
 export function observeMedia() {
-  mediaObserver.observe(document, {
+  mediaObserver.observe(exportDocument, {
     attributes: false,
     childList: true,
     characterData: false,
@@ -204,6 +204,7 @@ function mediaCreateListener(element, name) {
 
 
 export function initializeMediaHandler() {
+  currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
   observeMedia();
   addElementCreateListener(mediaCreateListener);
   addElementNSCreateListener(mediaCreateListener);

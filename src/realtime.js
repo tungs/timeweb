@@ -17,16 +17,19 @@ let oldPerformance = exportObject.performance;
 export let realtimePerformance = {
   now: oldPerformanceNow.bind(oldPerformance)
 };
-let oldCreateElement = exportDocument.createElement;
-let oldCreateElementNS = exportDocument.createElementNS;
+let oldCreateElement, oldCreateElementNS;
+if (exportDocument) {
+  oldCreateElement = exportDocument.createElement;
+  oldCreateElementNS = exportDocument.createElementNS;
+}
 
-export let realtimeCreateElement = function () {
+export let realtimeCreateElement = !exportDocument ? undefined : function () {
   let element = oldCreateElement.apply(exportDocument, arguments);
   markAsRealtime(element);
   return element;
 };
 
-export let realtimeCreateElementNS = function () {
+export let realtimeCreateElementNS = !exportDocument ? undefined : function () {
   let element = oldCreateElementNS.apply(exportDocument, arguments);
   markAsRealtime(element);
   return element;

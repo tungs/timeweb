@@ -1,9 +1,17 @@
+import { exportDocument } from './shared.js';
+
 var elementCreateListeners = [];
 var elementNSCreateListeners = [];
 
-var oldCreateElement = document.createElement;
+// TODO: merge references to oldCreateElement(NS) with `realtime.js`
+var oldCreateElement, oldCreateElementNS;
+if (exportDocument) {
+  oldCreateElement = exportDocument.createElement;
+  oldCreateElementNS = exportDocument.createElementNS;
+}
+
 export function virtualCreateElement(tagName, options) {
-  var element = oldCreateElement.call(document, tagName, options);
+  var element = oldCreateElement.call(exportDocument, tagName, options);
   elementCreateListeners.forEach(function (listener) {
     listener(element, tagName);
   });
@@ -14,9 +22,8 @@ export function addElementCreateListener(listener) {
   elementCreateListeners.push(listener);
 }
 
-var oldCreateElementNS = document.createElementNS;
 export function virtualCreateElementNS(ns, qualifiedName, options) {
-  var element = oldCreateElementNS.call(document, ns, qualifiedName, options);
+  var element = oldCreateElementNS.call(exportDocument, ns, qualifiedName, options);
   elementNSCreateListeners.forEach(function (listener) {
     listener(element, qualifiedName);
   });

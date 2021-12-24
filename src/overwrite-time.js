@@ -8,7 +8,9 @@ import { virtualCreateElement, virtualCreateElementNS } from './create-element.j
 import { VirtualDate } from './date.js';
 import { initializeMediaHandler } from './media.js';
 
-initializeMediaHandler();
+if (exportDocument) {
+  initializeMediaHandler();
+}
 
 // overwriting built-in functions...
 exportObject.Date = VirtualDate;
@@ -19,5 +21,7 @@ exportObject.setInterval = virtualSetInterval;
 exportObject.cancelAnimationFrame = virtualCancelAnimationFrame;
 exportObject.clearTimeout = virtualClearTimeout;
 exportObject.clearInterval = virtualClearTimeout;
-exportDocument.createElement = virtualCreateElement;
-exportDocument.createElementNS = virtualCreateElementNS;
+if (exportDocument) {
+  exportDocument.createElement = virtualCreateElement;
+  exportDocument.createElementNS = virtualCreateElementNS;
+}
