@@ -38,10 +38,11 @@ export let realtimeCreateElementNS = !exportDocument ? undefined : function () {
 export let realtime = {
   Date: realtimeDate,
   setTimeout: realtimeSetTimeout,
+  clearTimeout: realtimeClearTimeout,
   requestAnimationFrame: realtimeRequestAnimationFrame,
   setInterval: realtimeSetInterval,
+  clearInterval: realtimeClearInterval,
   cancelAnimationFrame: realtimeCancelAnimationFrame,
-  clearTimeout: realtimeClearTimeout,
   performance: realtimePerformance,
   createElement: realtimeCreateElement,
   createElementNS: realtimeCreateElementNS

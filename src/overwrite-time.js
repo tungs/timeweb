@@ -1,6 +1,7 @@
 // Since this file overwrites properties of the exportObject that other files
 // assign from, it's important that those other files run first
 // In particular `realtime.js` is one of those files
+import './realtime.js';
 import { virtualNow, exportObject, exportDocument } from './shared.js';
 import { virtualSetTimeout, virtualSetInterval, virtualClearTimeout } from './timeout-and-interval.js';
 import { virtualRequestAnimationFrame, virtualCancelAnimationFrame } from './animation-frames.js';
