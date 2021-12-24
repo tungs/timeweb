@@ -164,8 +164,8 @@ export function removeMediaNode(node) {
 // (e.g. through `div.innerHTML`), and then operations are done on them
 // before adding them to DOM
 
-// mediaObserver covers elements when they're added to DOM
-var mediaObserver = new MutationObserver(function (mutationsList) {
+// mutationHandler covers elements when they're added to DOM
+function mutationHandler(mutationsList) {
   for (let mutation of mutationsList) {
     if (mutation.type === 'childList') {
       for (let node of mutation.addedNodes) {
@@ -180,9 +180,10 @@ var mediaObserver = new MutationObserver(function (mutationsList) {
       }
     }
   }
-});
+}
 
 export function observeMedia() {
+  var mediaObserver = new MutationObserver(mutationHandler);
   mediaObserver.observe(exportDocument, {
     attributes: false,
     childList: true,
