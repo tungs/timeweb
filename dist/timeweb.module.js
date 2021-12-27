@@ -31,8 +31,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-var exportObject = window;
-var exportDocument = document;
+var exportObject = typeof window !== 'undefined' ? window : self;
+var exportDocument = typeof document !== 'undefined' ? document: undefined;
 
 var virtualTime = Date.now();
 
@@ -49,6 +49,66 @@ var idCount = 1;
 function getNewId() {
   return idCount++;
 }
+
+const processedProperty = '_timeweb_processed';
+const realtimeProperty = '_timeweb_realtime';
+
+function markAsProcessed(element, processed = true) {
+  element[processedProperty] = processed;
+}
+
+function markAsRealtime(element, realtime = true) {
+  element[realtimeProperty] = realtime;
+}
+
+function shouldBeProcessed(element) {
+  return !element[processedProperty] && !element[realtimeProperty];
+}
+
+// Note that since realtime depends on assigning from exportObject and exportDocument
+let realtimeDate = exportObject.Date;
+let realtimeSetTimeout = exportObject.setTimeout.bind(exportObject);
+let realtimeRequestAnimationFrame = exportObject.requestAnimationFrame.bind(exportObject);
+let realtimeSetInterval = exportObject.setInterval.bind(exportObject);
+let realtimeCancelAnimationFrame = exportObject.cancelAnimationFrame.bind(exportObject);
+let realtimeClearTimeout = exportObject.clearTimeout.bind(exportObject);
+let realtimeClearInterval = exportObject.clearInterval.bind(exportObject);
+let oldPerformanceNow = exportObject.performance.now;
+let oldPerformance = exportObject.performance;
+// performance.now() requires performance to be the caller
+let realtimePerformance = {
+  now: oldPerformanceNow.bind(oldPerformance)
+};
+let oldCreateElement, oldCreateElementNS;
+if (exportDocument) {
+  oldCreateElement = exportDocument.createElement;
+  oldCreateElementNS = exportDocument.createElementNS;
+}
+
+let realtimeCreateElement = !exportDocument ? undefined : function () {
+  let element = oldCreateElement.apply(exportDocument, arguments);
+  markAsRealtime(element);
+  return element;
+};
+
+let realtimeCreateElementNS = !exportDocument ? undefined : function () {
+  let element = oldCreateElementNS.apply(exportDocument, arguments);
+  markAsRealtime(element);
+  return element;
+};
+
+let realtime = {
+  Date: realtimeDate,
+  setTimeout: realtimeSetTimeout,
+  clearTimeout: realtimeClearTimeout,
+  requestAnimationFrame: realtimeRequestAnimationFrame,
+  setInterval: realtimeSetInterval,
+  clearInterval: realtimeClearInterval,
+  cancelAnimationFrame: realtimeCancelAnimationFrame,
+  performance: realtimePerformance,
+  createElement: realtimeCreateElement,
+  createElementNS: realtimeCreateElementNS
+};
 
 var startTime = virtualNow();
 // a block is a segment of blocking code, wrapped in a function
@@ -204,9 +264,15 @@ function runAnimationFrames() {
 var elementCreateListeners = [];
 var elementNSCreateListeners = [];
 
-var oldCreateElement = document.createElement;
+// TODO: merge references to oldCreateElement(NS) with `realtime.js`
+var oldCreateElement$1, oldCreateElementNS$1;
+if (exportDocument) {
+  oldCreateElement$1 = exportDocument.createElement;
+  oldCreateElementNS$1 = exportDocument.createElementNS;
+}
+
 function virtualCreateElement(tagName, options) {
-  var element = oldCreateElement.call(document, tagName, options);
+  var element = oldCreateElement$1.call(exportDocument, tagName, options);
   elementCreateListeners.forEach(function (listener) {
     listener(element, tagName);
   });
@@ -217,9 +283,8 @@ function addElementCreateListener(listener) {
   elementCreateListeners.push(listener);
 }
 
-var oldCreateElementNS = document.createElementNS;
 function virtualCreateElementNS(ns, qualifiedName, options) {
-  var element = oldCreateElementNS.call(document, ns, qualifiedName, options);
+  var element = oldCreateElementNS$1.call(exportDocument, ns, qualifiedName, options);
   elementNSCreateListeners.forEach(function (listener) {
     listener(element, qualifiedName);
   });
@@ -274,24 +339,9 @@ function runFramePreparers(time, cb) {
   return Promise.resolve();
 }
 
-const processedProperty = '_timeweb_processed';
-const realtimeProperty = '_timeweb_realtime';
-
-function markAsProcessed(element, processed = true) {
-  element[processedProperty] = processed;
-}
-
-function markAsRealtime(element, realtime = true) {
-  element[realtimeProperty] = realtime;
-}
-
-function shouldBeProcessed(element) {
-  return !element[processedProperty] && !element[realtimeProperty];
-}
-
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
-var currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
+var currentTimePropertyDescriptor;
 function addMediaNode(node) {
   if (!shouldBeProcessed(node)) {
     return;
@@ -450,8 +500,8 @@ function removeMediaNode(node) {
 // (e.g. through `div.innerHTML`), and then operations are done on them
 // before adding them to DOM
 
-// mediaObserver covers elements when they're added to DOM
-var mediaObserver = new MutationObserver(function (mutationsList) {
+// mutationHandler covers elements when they're added to DOM
+function mutationHandler(mutationsList) {
   for (let mutation of mutationsList) {
     if (mutation.type === 'childList') {
       for (let node of mutation.addedNodes) {
@@ -466,10 +516,11 @@ var mediaObserver = new MutationObserver(function (mutationsList) {
       }
     }
   }
-});
+}
 
 function observeMedia() {
-  mediaObserver.observe(document, {
+  var mediaObserver = new MutationObserver(mutationHandler);
+  mediaObserver.observe(exportDocument, {
     attributes: false,
     childList: true,
     characterData: false,
@@ -490,6 +541,7 @@ function mediaCreateListener(element, name) {
 
 
 function initializeMediaHandler() {
+  currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
   observeMedia();
   addElementCreateListener(mediaCreateListener);
   addElementNSCreateListener(mediaCreateListener);
@@ -508,7 +560,9 @@ function initializeMediaHandler() {
 
 // Since this file overwrites properties of the exportObject that other files
 
-initializeMediaHandler();
+if (exportDocument) {
+  initializeMediaHandler();
+}
 
 // overwriting built-in functions...
 exportObject.Date = VirtualDate;
@@ -519,49 +573,10 @@ exportObject.setInterval = virtualSetInterval;
 exportObject.cancelAnimationFrame = virtualCancelAnimationFrame;
 exportObject.clearTimeout = virtualClearTimeout;
 exportObject.clearInterval = virtualClearTimeout;
-exportDocument.createElement = virtualCreateElement;
-exportDocument.createElementNS = virtualCreateElementNS;
-
-// Note that since realtime depends on assigning from exportObject and exportDocument
-let realtimeDate = exportObject.Date;
-let realtimeSetTimeout = exportObject.setTimeout.bind(exportObject);
-let realtimeRequestAnimationFrame = exportObject.requestAnimationFrame.bind(exportObject);
-let realtimeSetInterval = exportObject.setInterval.bind(exportObject);
-let realtimeCancelAnimationFrame = exportObject.cancelAnimationFrame.bind(exportObject);
-let realtimeClearTimeout = exportObject.clearTimeout.bind(exportObject);
-let realtimeClearInterval = exportObject.clearInterval.bind(exportObject);
-let oldPerformanceNow = exportObject.performance.now;
-let oldPerformance = exportObject.performance;
-// performance.now() requires performance to be the caller
-let realtimePerformance = {
-  now: oldPerformanceNow.bind(oldPerformance)
-};
-let oldCreateElement$1 = exportDocument.createElement;
-let oldCreateElementNS$1 = exportDocument.createElementNS;
-
-let realtimeCreateElement = function () {
-  let element = oldCreateElement$1.apply(exportDocument, arguments);
-  markAsRealtime(element);
-  return element;
-};
-
-let realtimeCreateElementNS = function () {
-  let element = oldCreateElementNS$1.apply(exportDocument, arguments);
-  markAsRealtime(element);
-  return element;
-};
-
-let realtime = {
-  Date: realtimeDate,
-  setTimeout: realtimeSetTimeout,
-  requestAnimationFrame: realtimeRequestAnimationFrame,
-  setInterval: realtimeSetInterval,
-  cancelAnimationFrame: realtimeCancelAnimationFrame,
-  clearTimeout: realtimeClearTimeout,
-  performance: realtimePerformance,
-  createElement: realtimeCreateElement,
-  createElementNS: realtimeCreateElementNS
-};
+if (exportDocument) {
+  exportDocument.createElement = virtualCreateElement;
+  exportDocument.createElementNS = virtualCreateElementNS;
+}
 
 var version = "0.2.1-prerelease";
 
