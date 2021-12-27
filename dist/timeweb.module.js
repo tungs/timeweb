@@ -578,7 +578,7 @@ if (exportDocument) {
   exportDocument.createElementNS = virtualCreateElementNS;
 }
 
-var version = "0.2.1";
+var version = "0.2.2-prerelease";
 
 function goTo(ms) {
   processUntilTime(ms);
