@@ -1,6 +1,6 @@
 import json from '@rollup/plugin-json';
-import path from 'path';
 import { terser } from 'rollup-plugin-terser';
+import path from 'path';
 import fs from 'fs';
 import * as meta from './package.json';
 
@@ -18,21 +18,21 @@ export default [
     output: [
       {
         file: 'dist/timeweb.js',
-        banner: banner,
         name: 'timeweb',
+        banner,
         format: 'umd'
       },
       {
         file: 'dist/timeweb.min.js',
         name: 'timeweb',
         plugins: [ terser({
-          output: { preamble: '// timeweb v' + meta.version + ' ' + copyright }
+          format: { preamble: '// timeweb v' + meta.version + ' ' + copyright }
         }) ],
         format: 'umd'
       },
       {
         file: 'dist/timeweb.module.js',
-        banner: banner,
+        banner,
         format: 'es'
       }
     ],
