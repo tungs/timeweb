@@ -10,5 +10,8 @@ export function markAsRealtime(element, realtime = true) {
 }
 
 export function shouldBeProcessed(element) {
+  if (element.dataset && 'timewebRealtime' in element.dataset) {
+    return false;
+  }
   return !element[processedProperty] && !element[realtimeProperty];
 }
