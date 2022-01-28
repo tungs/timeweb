@@ -715,7 +715,7 @@ function runFramePreparers(time, cb) {
   return Promise.resolve();
 }
 
-var version = "0.2.2-prerelease";
+var version = "0.2.2";
 
 // exports to the `timeweb` module/object
 
