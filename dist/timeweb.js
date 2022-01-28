@@ -721,7 +721,7 @@
     return Promise.resolve();
   }
 
-  var version = "0.2.2";
+  var version = "0.3.0-prerelease";
 
   // exports to the `timeweb` module/object
 
