@@ -1,8 +1,8 @@
-import { addFramePreparer } from './frame-preparers.js';
 import { virtualNow, exportDocument } from './shared.js';
 import { addElementCreateListener, addElementNSCreateListener } from './create-element.js';
 import { virtualSetTimeout } from './timeout-and-interval.js';
 import { markAsProcessed, shouldBeProcessed } from './element.js';
+import { subscribe } from './library-events.js';
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
 var currentTimePropertyDescriptor;
@@ -209,26 +209,14 @@ export function initializeMediaHandler() {
   observeMedia();
   addElementCreateListener(mediaCreateListener);
   addElementNSCreateListener(mediaCreateListener);
-  // subscribe('preseek', function ({ time }) {
-  //   let activeMedia = mediaList.filter(function () {
-  //     return !b.paused && !b.ended
-  //   });
-  //   if (activeMedia.length) {
-  //     return Promise.all(activeMedia.map(function (media) {
-  //       return media.goToTime(time);
-  //     });
-  //   }
-  // }, { wait: true });
-  addFramePreparer({
-    shouldRun: function () {
-      return mediaList.length && mediaList.reduce(function (a, b) {
-        return a || (!b.paused && !b.ended);
-      }, false);
-    },
-    prepare: function (time) {
-      // TODO: maybe optimize this to use callbacks/immediate promises instead of promises
-      // (immediate promises would be easier to convert)
-      return Promise.all(mediaList.map(media => media.goToTime(time)));
+  subscribe('preseek', function ({ time }) {
+    let activeMedia = mediaList.filter(function (node) {
+      return !node.paused && !node.ended;
+    });
+    if (activeMedia.length) {
+      return Promise.all(activeMedia.map(function (media) {
+        return media.goToTime(time);
+      }));
     }
-  });
+  }, { wait: true });
 }
