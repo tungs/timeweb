@@ -43,7 +43,7 @@ class TimewebEvent {
   }
 }
 
-export function dispatch(type, { data, detail }) {
+export function dispatch(type, { data, detail } = {}) {
   var waits = [];
   return quasiAsyncThen(
     quasiAsyncIterateArray(

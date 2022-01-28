@@ -411,7 +411,7 @@
     }
   }
 
-  function dispatch(type, { data, detail }) {
+  function dispatch(type, { data, detail } = {}) {
     var waits = [];
     return quasiAsyncThen(
       quasiAsyncIterateArray(
