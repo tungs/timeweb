@@ -11,6 +11,10 @@
   },
   "main": "src/index.js",
   "browser": "dist/timeweb.js",
+  "files": [
+    "dist/",
+    "src/"
+  ],
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "lint": "eslint *.js './src/**/*.js'",
