@@ -62,6 +62,9 @@ function markAsRealtime(element, realtime = true) {
 }
 
 function shouldBeProcessed(element) {
+  if (element.dataset && element.dataset.timewebRealtime !== undefined) {
+    return false;
+  }
   return !element[processedProperty] && !element[realtimeProperty];
 }
 
@@ -715,16 +718,17 @@ var version = "0.2.2-prerelease";
 
 // exports to the `timeweb` module/object
 
-function goTo(ms, config) {
+function goTo(ms, config = {}) {
   return Promise.resolve(quasiAsyncGoTo(ms, config));
 }
 
-// TODO: export this function after finalizing the name
-function quasiAsyncGoTo(ms, config) {
+function quasiAsyncGoTo(ms, config = {}) {
   var seekAndAnimate = quasiAsyncThen(
     seekTo(ms, config),
     function () {
-      return animateFrame(ms, config);
+      if (!config.skipAnimate) {
+        return animateFrame(ms, config);
+      }
     }
   );
   return quasiAsyncThen(
