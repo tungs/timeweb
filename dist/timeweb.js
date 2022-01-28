@@ -689,7 +689,7 @@
     exportDocument.createElementNS = virtualCreateElementNS;
   }
 
-  var version = "0.3.0-prerelease";
+  var version = "0.3.0";
 
   // exports to the `timeweb` module/object
 
