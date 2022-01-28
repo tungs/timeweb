@@ -650,13 +650,13 @@ function initializeMediaHandler() {
   observeMedia();
   addElementCreateListener(mediaCreateListener);
   addElementNSCreateListener(mediaCreateListener);
-  subscribe('preseek', function ({ time }) {
+  subscribe('postseek', function () {
     let activeMedia = mediaList.filter(function (node) {
       return !node.paused && !node.ended;
     });
     if (activeMedia.length) {
       return Promise.all(activeMedia.map(function (media) {
-        return media.goToTime(time);
+        return media.goToTime();
       }));
     }
   }, { wait: true });
