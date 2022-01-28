@@ -9,8 +9,8 @@ import { subscribe, unsubscribe, dispatch } from './library-events.js';
 import { quasiAsyncThen } from './utils.js';
 export { realtime } from './realtime.js';
 export { version } from '../package.json';
-export function goTo(ms) {
-  return Promise.resolve(quasiAsyncGoTo(ms));
+export function goTo(ms, config) {
+  return Promise.resolve(quasiAsyncGoTo(ms, config));
   // await dispatch('preseek', { time: ms });
   // processUntilTime(ms);
   // await dispatch('postseek', { time: ms });
@@ -23,7 +23,7 @@ export function goTo(ms) {
 // TODO: export the function after finalizing the name
 function quasiAsyncGoTo(ms, config) {
   var seekAndAnimate = quasiAsyncThen(
-    seekTo(ms),
+    seekTo(ms, config),
     function () {
       return animateFrame(ms, config);
     }
@@ -31,7 +31,7 @@ function quasiAsyncGoTo(ms, config) {
   return quasiAsyncThen(
     seekAndAnimate,
     function () {
-      return runFramePreparers(ms, config);
+      return runFramePreparers(ms);
     }
   );
 }
