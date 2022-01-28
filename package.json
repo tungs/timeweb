@@ -9,7 +9,8 @@
   "author": {
     "name": "Steve Tung"
   },
-  "main": "index.js",
+  "main": "src/index.js",
+  "browser": "dist/timeweb.js",
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "lint": "eslint *.js './src/**/*.js'",
