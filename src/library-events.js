@@ -1,4 +1,6 @@
 import { quasiAsyncIterateArray, quasiAsyncThen, isThenable } from './utils.js';
+import { virtualNow } from './shared.js';
+
 var eventListeners = {
   preanimate: [],
   postanimate: [],
@@ -25,9 +27,10 @@ export function unsubscribe(type, fn) {
 }
 
 class TimewebEvent {
-  constructor({ data, detail }) {
+  constructor({ data, detail, virtualTime }) {
     this.data = data;
     this.detail = detail;
+    this.virtualTime = virtualTime;
     this.afterPromises = [];
     this.immediateAfterPromises = [];
   }
@@ -50,7 +53,7 @@ export function dispatch(type, { data, detail } = {}) {
       eventListeners[type],
       function (listener) {
         let config = listener.config || {};
-        let e = new TimewebEvent({ data, detail });
+        let e = new TimewebEvent({ data, detail, virtualTime: virtualNow() });
         let response = listener.fn(e);
         let afterPromises = e.afterPromises;
         let immediateAfterPromises = e.immediateAfterPromises;

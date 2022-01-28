@@ -396,9 +396,10 @@
   }
 
   class TimewebEvent {
-    constructor({ data, detail }) {
+    constructor({ data, detail, virtualTime }) {
       this.data = data;
       this.detail = detail;
+      this.virtualTime = virtualTime;
       this.afterPromises = [];
       this.immediateAfterPromises = [];
     }
@@ -421,7 +422,7 @@
         eventListeners[type],
         function (listener) {
           let config = listener.config || {};
-          let e = new TimewebEvent({ data, detail });
+          let e = new TimewebEvent({ data, detail, virtualTime: virtualNow() });
           let response = listener.fn(e);
           let afterPromises = e.afterPromises;
           let immediateAfterPromises = e.immediateAfterPromises;
@@ -747,20 +748,20 @@
 
   function seekTo(ms, { detail } = {}) {
     return quasiAsyncThen(
-      dispatch('preseek', { time: ms, detail }),
+      dispatch('preseek', { data: { seekTime: ms }, detail }),
       function () {
         processUntilTime(ms);
-        return dispatch('postseek', { time: ms, detail });
+        return dispatch('postseek', { detail });
       }
     );
   }
 
   function animateFrame(ms, { detail } = {}) {
     return quasiAsyncThen(
-      dispatch('preanimate', { time: ms, detail }),
+      dispatch('preanimate', { detail }),
       function () {
         runAnimationFrames();
-        return dispatch('postanimate', { time: ms, detail });
+        return dispatch('postanimate', { detail });
       }
     );
   }
