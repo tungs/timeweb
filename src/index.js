@@ -9,18 +9,12 @@ import { subscribe, unsubscribe, dispatch } from './library-events.js';
 import { quasiAsyncThen } from './utils.js';
 export { realtime } from './realtime.js';
 export { version } from '../package.json';
+
 export function goTo(ms, config) {
   return Promise.resolve(quasiAsyncGoTo(ms, config));
-  // await dispatch('preseek', { time: ms });
-  // processUntilTime(ms);
-  // await dispatch('postseek', { time: ms });
-  // await dispatch('preanimate', { time: ms });
-  // runAnimationFrames();
-  // await dispatch('postanimate', { time: ms });
-  // return runFramePreparers(ms);
 }
 
-// TODO: export the function after finalizing the name
+// TODO: export this function after finalizing the name
 function quasiAsyncGoTo(ms, config) {
   var seekAndAnimate = quasiAsyncThen(
     seekTo(ms, config),

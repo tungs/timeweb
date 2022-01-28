@@ -79,20 +79,20 @@ let oldPerformance = exportObject.performance;
 let realtimePerformance = {
   now: oldPerformanceNow.bind(oldPerformance)
 };
-let oldCreateElement, oldCreateElementNS;
+let oldCreateElement$1, oldCreateElementNS$1;
 if (exportDocument) {
-  oldCreateElement = exportDocument.createElement;
-  oldCreateElementNS = exportDocument.createElementNS;
+  oldCreateElement$1 = exportDocument.createElement;
+  oldCreateElementNS$1 = exportDocument.createElementNS;
 }
 
 let realtimeCreateElement = !exportDocument ? undefined : function () {
-  let element = oldCreateElement.apply(exportDocument, arguments);
+  let element = oldCreateElement$1.apply(exportDocument, arguments);
   markAsRealtime(element);
   return element;
 };
 
 let realtimeCreateElementNS = !exportDocument ? undefined : function () {
-  let element = oldCreateElementNS.apply(exportDocument, arguments);
+  let element = oldCreateElementNS$1.apply(exportDocument, arguments);
   markAsRealtime(element);
   return element;
 };
@@ -265,14 +265,14 @@ var elementCreateListeners = [];
 var elementNSCreateListeners = [];
 
 // TODO: merge references to oldCreateElement(NS) with `realtime.js`
-var oldCreateElement$1, oldCreateElementNS$1;
+var oldCreateElement, oldCreateElementNS;
 if (exportDocument) {
-  oldCreateElement$1 = exportDocument.createElement;
-  oldCreateElementNS$1 = exportDocument.createElementNS;
+  oldCreateElement = exportDocument.createElement;
+  oldCreateElementNS = exportDocument.createElementNS;
 }
 
 function virtualCreateElement(tagName, options) {
-  var element = oldCreateElement$1.call(exportDocument, tagName, options);
+  var element = oldCreateElement.call(exportDocument, tagName, options);
   elementCreateListeners.forEach(function (listener) {
     listener(element, tagName);
   });
@@ -284,7 +284,7 @@ function addElementCreateListener(listener) {
 }
 
 function virtualCreateElementNS(ns, qualifiedName, options) {
-  var element = oldCreateElementNS$1.call(exportDocument, ns, qualifiedName, options);
+  var element = oldCreateElementNS.call(exportDocument, ns, qualifiedName, options);
   elementNSCreateListeners.forEach(function (listener) {
     listener(element, qualifiedName);
   });
@@ -714,21 +714,15 @@ function runFramePreparers(time, cb) {
 var version = "0.2.2-prerelease";
 
 // exports to the `timeweb` module/object
-function goTo(ms) {
-  return Promise.resolve(quasiAsyncGoTo(ms));
-  // await dispatch('preseek', { time: ms });
-  // processUntilTime(ms);
-  // await dispatch('postseek', { time: ms });
-  // await dispatch('preanimate', { time: ms });
-  // runAnimationFrames();
-  // await dispatch('postanimate', { time: ms });
-  // return runFramePreparers(ms);
+
+function goTo(ms, config) {
+  return Promise.resolve(quasiAsyncGoTo(ms, config));
 }
 
-// TODO: export the function after finalizing the name
+// TODO: export this function after finalizing the name
 function quasiAsyncGoTo(ms, config) {
   var seekAndAnimate = quasiAsyncThen(
-    seekTo(ms),
+    seekTo(ms, config),
     function () {
       return animateFrame(ms, config);
     }
@@ -736,7 +730,7 @@ function quasiAsyncGoTo(ms, config) {
   return quasiAsyncThen(
     seekAndAnimate,
     function () {
-      return runFramePreparers(ms, config);
+      return runFramePreparers(ms);
     }
   );
 }
