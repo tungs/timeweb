@@ -32,7 +32,7 @@
  *
  */
 var exportObject = typeof window !== 'undefined' ? window : self;
-var exportDocument = typeof document !== 'undefined' ? document: undefined;
+var exportDocument = typeof document !== 'undefined' ? document : undefined;
 
 var virtualTime = Date.now();
 
@@ -545,6 +545,16 @@ function initializeMediaHandler() {
   observeMedia();
   addElementCreateListener(mediaCreateListener);
   addElementNSCreateListener(mediaCreateListener);
+  // subscribe('preseek', function ({ time }) {
+  //   let activeMedia = mediaList.filter(function () {
+  //     return !b.paused && !b.ended
+  //   });
+  //   if (activeMedia.length) {
+  //     return Promise.all(activeMedia.map(function (media) {
+  //       return media.goToTime(time);
+  //     });
+  //   }
+  // }, { wait: true });
   addFramePreparer({
     shouldRun: function () {
       return mediaList.length && mediaList.reduce(function (a, b) {
@@ -552,7 +562,8 @@ function initializeMediaHandler() {
       }, false);
     },
     prepare: function (time) {
-      // TODO: maybe optimize this to use callbacks instead of promises
+      // TODO: maybe optimize this to use callbacks/immediate promises instead of promises
+      // (immediate promises would be easier to convert)
       return Promise.all(mediaList.map(media => media.goToTime(time)));
     }
   });
@@ -578,12 +589,191 @@ if (exportDocument) {
   exportDocument.createElementNS = virtualCreateElementNS;
 }
 
-var version = "0.2.2-prerelease";
-
-function goTo(ms) {
-  processUntilTime(ms);
-  runAnimationFrames();
-  return runFramePreparers(ms);
+function isThenable(o) {
+  return o && (o.then instanceof Function);
 }
 
-export { addFramePreparer, goTo, processUntilTime, realtime, runAnimationFrames, runFramePreparers, version };
+/* Quasi-Async Functions */
+// These functions are asynchronous only if necessary
+// They might not be necessary if awaiting resolved promises
+// immediately continues the function, though according to
+// https://stackoverflow.com/q/64367903 awaiting resolved promises
+// isn't necessarily synchronous.
+// These Quasi-Async functions are an alternative to the async model.
+// Promises can be returned, but only if necessary (maybe-promise objects)
+// They can be chained with themselves and each other, where they take
+// arguments that are maybe-promises and functions that can return maybe-promises.
+// An additional potential optimization could be
+// to use a promise that calls `then` immediately after resolving
+// These quasi-async functions are implemented instead of async/await because:
+// 1. Some functions need to run immediately afterwards
+//   (like copying WebGL canvas data after painting)
+// 2. Potential performance (though this should be benchmarked, since this
+//   impementation adds overhead with additional functions)
+// 3. (To a much lesser extent) Compatibility for browsers without async/await
+function quasiAsyncThen(a, fnB) {
+  if (isThenable(a)) {
+    return a.then(fnB);
+  } else {
+    return fnB();
+  }
+}
+
+function quasiAsyncWhileLoop(condition, body) {
+  while (condition()) {
+    let r = body();
+    if (isThenable(r)) {
+      return r.then(function () {
+        quasiAsyncWhileLoop(condition, body);
+      });
+    }
+  }
+}
+
+
+function quasiAsyncIterateArray(array, body) {
+  var i = 0;
+  return quasiAsyncWhileLoop(
+    function () {
+      return i < array.length;
+    },
+    function () {
+      return body(array[i++]);
+    }
+  );
+}
+
+var eventListeners = {
+  preanimate: [],
+  postanimate: [],
+  preseek: [],
+  postseek: []
+};
+
+function subscribe(type, fn, config) {
+  if (!eventListeners[type]) {
+    // eslint-disable-next-line no-console
+    console.error('Invalid subscriber type: ' + type);
+    return;
+  }
+  eventListeners[type].push({ fn, config });
+}
+
+function unsubscribe(type, fn) {
+  if (!eventListeners[type]) {
+    // eslint-disable-next-line no-console
+    console.error('Invalid unsubscriber type: ' + type);
+    return;
+  }
+  eventListeners[type] = eventListeners[type].filter(listener => listener.fn !== fn);
+}
+
+class TimewebEvent {
+  constructor({ data, detail }) {
+    this.data = data;
+    this.detail = detail;
+    this.afterPromises = [];
+    this.immediateAfterPromises = [];
+  }
+  waitAfterFor(promise) {
+    if (isThenable(promise)) {
+      this.afterPromises.push(promise);
+    }
+  }
+  waitImmediatelyAfterFor(promise) {
+    if (isThenable(promise)) {
+      this.immediateAfterPromises.push(promise);
+    }
+  }
+}
+
+function dispatch(type, { data, detail }) {
+  var waits = [];
+  return quasiAsyncThen(
+    quasiAsyncIterateArray(
+      eventListeners[type],
+      function (listener) {
+        let config = listener.config || {};
+        let e = new TimewebEvent({ data, detail });
+        let response = listener.fn(e);
+        let afterPromises = e.afterPromises;
+        let immediateAfterPromises = e.immediateAfterPromises;
+        waits = waits.concat(afterPromises);
+        if (config.wait && isThenable(response)) {
+          // this allows skipping the await if the return is falsey
+          // though this means the listener function should be a regular
+          // function that sometimes returns a promise, instead of an
+          // async function, since async always returns a promise
+          waits.push(response);
+        }
+        if (config.waitImmediately && isThenable(response)) {
+          immediateAfterPromises = immediateAfterPromises.concat([ response ]);
+        }
+        if (immediateAfterPromises.length) {
+          return Promise.all(immediateAfterPromises);
+        }
+      }
+    ),
+    function () {
+      // make sure this runs after the loop finishes, since it may not immediately add waits
+      if (waits.length) {
+        return Promise.all(waits);
+      }
+    }
+  );
+}
+
+var version = "0.2.2-prerelease";
+
+// exports to the `timeweb` module/object
+function goTo(ms) {
+  return Promise.resolve(quasiAsyncGoTo(ms));
+  // await dispatch('preseek', { time: ms });
+  // processUntilTime(ms);
+  // await dispatch('postseek', { time: ms });
+  // await dispatch('preanimate', { time: ms });
+  // runAnimationFrames();
+  // await dispatch('postanimate', { time: ms });
+  // return runFramePreparers(ms);
+}
+
+// TODO: export the function after finalizing the name
+function quasiAsyncGoTo(ms, config) {
+  var seekAndAnimate = quasiAsyncThen(
+    seekTo(ms),
+    function () {
+      return animateFrame(ms, config);
+    }
+  );
+  return quasiAsyncThen(
+    seekAndAnimate,
+    function () {
+      return runFramePreparers(ms, config);
+    }
+  );
+}
+
+function seekTo(ms, { detail } = {}) {
+  return quasiAsyncThen(
+    dispatch('preseek', { time: ms, detail }),
+    function () {
+      processUntilTime(ms);
+      return dispatch('postseek', { time: ms, detail });
+    }
+  );
+}
+
+function animateFrame(ms, { detail } = {}) {
+  return quasiAsyncThen(
+    dispatch('preanimate', { time: ms, detail }),
+    function () {
+      runAnimationFrames();
+      return dispatch('postanimate', { time: ms, detail });
+    }
+  );
+}
+
+const on = subscribe;
+const off = unsubscribe;
+
+export { addFramePreparer, goTo, off, on, processUntilTime, realtime, runAnimationFrames, runFramePreparers, version };

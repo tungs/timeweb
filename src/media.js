@@ -209,6 +209,16 @@ export function initializeMediaHandler() {
   observeMedia();
   addElementCreateListener(mediaCreateListener);
   addElementNSCreateListener(mediaCreateListener);
+  // subscribe('preseek', function ({ time }) {
+  //   let activeMedia = mediaList.filter(function () {
+  //     return !b.paused && !b.ended
+  //   });
+  //   if (activeMedia.length) {
+  //     return Promise.all(activeMedia.map(function (media) {
+  //       return media.goToTime(time);
+  //     });
+  //   }
+  // }, { wait: true });
   addFramePreparer({
     shouldRun: function () {
       return mediaList.length && mediaList.reduce(function (a, b) {
@@ -216,7 +226,8 @@ export function initializeMediaHandler() {
       }, false);
     },
     prepare: function (time) {
-      // TODO: maybe optimize this to use callbacks instead of promises
+      // TODO: maybe optimize this to use callbacks/immediate promises instead of promises
+      // (immediate promises would be easier to convert)
       return Promise.all(mediaList.map(media => media.goToTime(time)));
     }
   });
