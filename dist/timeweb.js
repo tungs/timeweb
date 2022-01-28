@@ -689,38 +689,6 @@
     exportDocument.createElementNS = virtualCreateElementNS;
   }
 
-  var framePreparers = [];
-  // can maybe optimize this to use only callbacks
-  function addFramePreparer(preparer) {
-    if (typeof preparer === 'function') {
-      preparer = {
-        shouldRun: function () { return true; },
-        prepare: preparer
-      };
-    }
-    framePreparers.push(preparer);
-  }
-  function runFramePreparers(time, cb) {
-    // instead of solely promises, callbacks are used for performance
-    // this code can be significantly simplified if performance is not a concern
-    var shouldRun = framePreparers.reduce(function (a, b) {
-      return a || b.shouldRun(time);
-    }, false);
-    if (shouldRun) {
-      // can maybe optimize this to use only callbacks
-      return Promise.all(framePreparers.map(preparer=>preparer.prepare(time))).then(function () {
-        if (cb) {
-          return cb(time);
-        }
-      });
-    } else {
-      if (cb) {
-        cb(time);
-      }
-    }
-    return Promise.resolve();
-  }
-
   var version = "0.3.0-prerelease";
 
   // exports to the `timeweb` module/object
@@ -730,18 +698,12 @@
   }
 
   function quasiAsyncGoTo(ms, config = {}) {
-    var seekAndAnimate = quasiAsyncThen(
+    return quasiAsyncThen(
       seekTo(ms, config),
       function () {
         if (!config.skipAnimate) {
           return animateFrame(ms, config);
         }
-      }
-    );
-    return quasiAsyncThen(
-      seekAndAnimate,
-      function () {
-        return runFramePreparers(ms);
       }
     );
   }
@@ -769,14 +731,12 @@
   const on = subscribe;
   const off = unsubscribe;
 
-  exports.addFramePreparer = addFramePreparer;
   exports.goTo = goTo;
   exports.off = off;
   exports.on = on;
   exports.processUntilTime = processUntilTime;
   exports.realtime = realtime;
   exports.runAnimationFrames = runAnimationFrames;
-  exports.runFramePreparers = runFramePreparers;
   exports.version = version;
 
   Object.defineProperty(exports, '__esModule', { value: true });
