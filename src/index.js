@@ -10,16 +10,17 @@ import { quasiAsyncThen } from './utils.js';
 export { realtime } from './realtime.js';
 export { version } from '../package.json';
 
-export function goTo(ms, config) {
+export function goTo(ms, config = {}) {
   return Promise.resolve(quasiAsyncGoTo(ms, config));
 }
 
-// TODO: export this function after finalizing the name
-function quasiAsyncGoTo(ms, config) {
+function quasiAsyncGoTo(ms, config = {}) {
   var seekAndAnimate = quasiAsyncThen(
     seekTo(ms, config),
     function () {
-      return animateFrame(ms, config);
+      if (!config.skipAnimate) {
+        return animateFrame(ms, config);
+      }
     }
   );
   return quasiAsyncThen(
