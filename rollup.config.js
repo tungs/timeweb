@@ -1,11 +1,17 @@
 import json from '@rollup/plugin-json';
 import path from 'path';
+import { terser } from 'rollup-plugin-terser';
 import fs from 'fs';
+import * as meta from './package.json';
 
 var license = fs.readFileSync(path.join(__dirname, 'LICENSE'), 'utf-8');
 var banner = '/**\n *\n' + license.split('\n').map(function (line) {
   return ' *' + (line.length ? ' ' : '') + line;
 }).join('\n') + '\n */';
+var copyright = license.split('\n').filter(function (line) {
+  return /Copyright/.test(line);
+}).join(', ');
+
 export default [
   {
     input: 'src/index.js',
@@ -14,6 +20,14 @@ export default [
         file: 'dist/timeweb.js',
         banner: banner,
         name: 'timeweb',
+        format: 'umd'
+      },
+      {
+        file: 'dist/timeweb.min.js',
+        name: 'timeweb',
+        plugins: [ terser({
+          output: { preamble: '// timeweb v' + meta.version + ' ' + copyright }
+        }) ],
         format: 'umd'
       },
       {

@@ -4,6 +4,8 @@ npm-debug.log*
 node_modules/
 .eslintcache
 *.tgz
+dist/timeweb.min.js
+dist/.timeweb.min.js.swp
 
 # Npm utilities
 yalc.lock
