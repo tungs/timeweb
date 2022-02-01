@@ -6,7 +6,7 @@ describe('timeweb should load', function () {
   after(async function () {
     return page.close();
   });
-  it('is accessible as a global object', async function () {
+  it('as a global object', async function () {
     expect(await page.evaluate(
       () => typeof timeweb
     )).to.equal('object');
