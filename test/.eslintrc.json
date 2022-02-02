@@ -1,0 +1,17 @@
+{
+  "parserOptions": {
+    "ecmaVersion": 8
+  },
+  "ignorePatterns": ["pages/*"],
+  "globals": {
+    "timeweb": "readonly",
+    "newPage": "readonly",
+    "describe": "readonly",
+    "it": "readonly",
+    "expect": "readonly",
+    "before": "readonly",
+    "after": "readonly",
+    "beforeEach": "readonly",
+    "afterEach": "readonly"
+  }
+}

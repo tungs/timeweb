@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "rollup -c rollup.config.js",
-    "lint": "eslint *.js './src/**/*.js'",
+    "lint": "eslint *.js './src/**/*.js' './test/**/*.js'",
     "test": "mocha test/init.js './test/{!(pages)/**,}/*.js'"
   },
   "license": "BSD-3-Clause",
