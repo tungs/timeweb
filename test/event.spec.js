@@ -66,83 +66,69 @@ describe('timeweb should support events', function () {
         }
       });
       describe('Async function handling', function () {
-        [
-          {
-            name: 'Doesn\'t normally prevent goTo from resolving',
-            init: () => {
-              window.handlerFunction = () => {};
-            },
-            expected: 'goTo handler'
-          },
-          {
-            name: 'Prevents goTo from resolving by returning a promise with the wait option',
-            init: () => {
-              window.handlerFunction = p => p;
-              window.handlerOptions = { wait: true };
-            },
-            expected: 'handler goTo'
-          },
-          {
-            name: 'Doesn\'t prevent goTo from resolving with the wait option, but not returning a promise',
-            init: () => {
-              window.handlerFunction = () => {};
-              window.handlerOptions = { wait: true };
-            },
-            expected: 'goTo handler'
-          },
-          {
-            name: 'Returning a promise without the wait option doesn\'t prevent goTo from resolving',
-            init: () => {
-              window.handlerFunction = p => p;
-            },
-            expected: 'goTo handler'
-          },
-          {
-            name: 'Prevents goTo from resolving by calling waitAfterFor',
-            init: () => {
-              window.handlerFunction = (p, e) => {
-                e.waitAfterFor(p);
-              };
-            },
-            expected: 'handler goTo'
-          },
-          {
-            name: 'Prevents goTo from resolving by calling waitImmediatelyAfterFor',
-            init: () => {
-              window.handlerFunction = (p, e) => {
-                e.waitImmediatelyAfterFor(p);
-              };
-            },
-            expected: 'handler goTo'
-          }
-        ].forEach(function ({ name, init, expected }) {
-          it(name, async function () {
-            await page.evaluate(init);
-            expect(await page.evaluate(async function ({ type }) {
-              var timeoutPromise = new Promise(function (resolve) {
-                window.oldSetTimeout(function () {
-                  resolve('timed out');
-                }, 200);
-              });
-              async function run() {
-                var handlerPromise;
-                timeweb.on(type, async function (e) {
-                  handlerPromise = new Promise(function (r) {
-                    window.oldSetTimeout(r, 1);
-                  }).then(function () {
-                    window.state.push('handler');
-                  });
-                  return window.handlerFunction(handlerPromise, e);
-                }, window.handlerOptions);
-                await timeweb.goTo(20);
-                window.state.push('goTo');
-                await handlerPromise;
-                return window.state.join(' ');
-              }
-              return Promise.race([ timeoutPromise, run() ]);
-            }, { type })).to.equal(expected);
+        beforeEach(async function () {
+          await page.evaluate(function ({ type }) {
+            window.run = async function(handlerFunction, handlerOptions) {
+              var handlerPromise;
+              timeweb.on(type, async function (e) {
+                handlerPromise = new Promise(function (r) {
+                  window.oldSetTimeout(r, 1);
+                }).then(function () {
+                  window.state.push('handler');
+                });
+                return handlerFunction(handlerPromise, e);
+              }, handlerOptions);
+              await timeweb.goTo(20);
+              window.state.push('goTo');
+              await handlerPromise;
+              return window.state.join(' ');
+            };
+            window.race = function(handlerFunction, handlerOptions) {
+              return Promise.race([
+                run(handlerFunction, handlerOptions),
+                new Promise(function (resolve) {
+                  window.oldSetTimeout(function () {
+                    resolve('timed out');
+                  }, 200);
+                })
+              ]);
+            };
+          }, { type });
+        });
+        describe('With the wait option', function () {
+          it('Prevents goTo from resolving by returning a promise', async function() {
+            expect(await page.evaluate(function () {
+              return window.race(p => p, { wait: true });
+            })).to.equal('handler goTo');
+          });
+          it('Doesn\'t prevent goTo from resolving when not returning a promise', async function () {
+            expect(await page.evaluate(function () {
+              return window.race(() => {}, { wait: true });
+            })).to.equal('goTo handler');
           });
         });
+        describe('Without the wait option', function () {
+          it('Doesn\'t normally prevent goTo from resolving', async function() {
+            expect(await page.evaluate(function () {
+              return window.race(() => {});
+            })).to.equal('goTo handler');
+          });
+          it('Doesn\'t prevent goTo from resolving when returning a promise', async function () {
+            expect(await page.evaluate(function () {
+              return window.race(p => p);
+            })).to.equal('goTo handler');
+          });
+          it('Prevents goTo from resolving by calling waitAfterFor with a promise', async function () {
+            expect(await page.evaluate(function () {
+              return window.race((p, e) => { e.waitAfterFor(p); });
+            })).to.equal('handler goTo');
+          });
+          it('Prevents goTo from resolving by calling waitImmediatelyAfterFor with a promise', async function () {
+            expect(await page.evaluate(function () {
+              return window.race((p, e) => { e.waitImmediatelyAfterFor(p); });
+            })).to.equal('handler goTo');
+          });
+        })
       });
 
       it('Event should get a virtualTime property equal to virtual time', async function () {
