@@ -15,7 +15,7 @@ describe('timeweb should support events', function () {
       capitalizedType: 'Preseek',
       basicDescription: 'should occur once before seek',
       basicInit: () => {
-        setTimeout(() => state.push('seek'));
+        setTimeout(() => window.state.push('seek'));
       },
       onlyOncePerGoTo: true,
       basicExpected: 'preseek seek'
@@ -25,7 +25,7 @@ describe('timeweb should support events', function () {
       basicDescription: 'should occur once after seek',
       onlyOncePerGoTo: true,
       basicInit: () => {
-        setTimeout(() => state.push('seek'));
+        setTimeout(() => window.state.push('seek'));
       },
       basicExpected: 'seek postseek'
     },
@@ -35,7 +35,7 @@ describe('timeweb should support events', function () {
       // currently only goes once per goTo, but it's not necessarily the case
       onlyOncePerGoTo: false,
       basicInit: () => {
-        requestAnimationFrame(() => state.push('animate'));
+        requestAnimationFrame(() => window.state.push('animate'));
       },
       basicExpected: 'preanimate animate'
     },
@@ -45,7 +45,7 @@ describe('timeweb should support events', function () {
       // currently only goes once per goTo, but it's not necessarily the case
       onlyOncePerGoTo: false,
       basicInit: () => {
-        requestAnimationFrame(() => state.push('animate'));
+        requestAnimationFrame(() => window.state.push('animate'));
       },
       basicExpected: 'animate postanimate'
     }
@@ -55,9 +55,9 @@ describe('timeweb should support events', function () {
       it(basicDescription, async function () {
         await page.evaluate(basicInit);
         let result = await page.evaluate(async function ( { type } ) {
-          timeweb.on(type, () => state.push(type));
+          timeweb.on(type, () => window.state.push(type));
           await timeweb.goTo(20);
-          return state.join(' ');
+          return window.state.join(' ');
         }, { type });
         if (onlyOncePerGoTo) {
           expect(result).to.equal(basicExpected);
@@ -128,14 +128,14 @@ describe('timeweb should support events', function () {
                   handlerPromise = new Promise(function (r) {
                     window.oldSetTimeout(r, 1);
                   }).then(function () {
-                    state.push('handler')
+                    window.state.push('handler')
                   });
                   return window.handlerFunction(handlerPromise, e);
                 }, window.handlerOptions);
                 await timeweb.goTo(20);
-                state.push('goTo');
+                window.state.push('goTo');
                 await handlerPromise;
-                resolve(state.join(' '));
+                resolve(window.state.join(' '));
               });
             }, { type })).to.equal(expected);
           });

@@ -5,6 +5,7 @@
   "ignorePatterns": ["pages/*"],
   "globals": {
     "timeweb": "readonly",
+    "pause": "readonly",
     "newPage": "readonly",
     "describe": "readonly",
     "it": "readonly",

@@ -6,7 +6,7 @@ describe('Virtual time handling functions', function () {
       window._timeweb_test_count = 0;
       window._timeweb_test_iterate = function () {
         window._timeweb_test_count++;
-      };      
+      };
     });
   });
   afterEach(async function () {
@@ -16,22 +16,22 @@ describe('Virtual time handling functions', function () {
     [
       'Virtual setTimeout without a time argument',
       false,
-      () => setTimeout(_timeweb_test_iterate)
+      () => setTimeout(window._timeweb_test_iterate)
     ],
     [
       'Virtual setTimeout with a time argument',
       true,
-      () => setTimeout(_timeweb_test_iterate, 100)
+      () => setTimeout(window._timeweb_test_iterate, 100)
     ],
     [
       'Virtual setInterval',
       true,
-      () => setInterval(_timeweb_test_iterate, 100)
+      () => setInterval(window._timeweb_test_iterate, 100)
     ],
     [
       'Virtual requestAnimationFrame',
       false,
-      () => requestAnimationFrame(_timeweb_test_iterate)
+      () => requestAnimationFrame(window._timeweb_test_iterate)
     ]
   ].forEach(function ([ name, timeArgument, init ]) {
     describe(name, function () {

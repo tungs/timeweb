@@ -23,7 +23,7 @@ describe('goTo', function () {
               window.startTime = Date.now();
             }
             window.testCondition = () => {
-              return Date.now() - startTime === 20;
+              return Date.now() - window.startTime === 20;
             }
           }
         },

@@ -20,7 +20,7 @@ describe('Virtual setTimeout', function () {
       });
       it('should return a positive integer id', async function () {
         expect(await page.evaluate(function () {
-          return timeout(function () {});
+          return window.timeout(function () {});
         })).to.be.above(0).and.to.satisfy(Number.isInteger);
       });
     })
@@ -32,7 +32,7 @@ describe('Virtual setTimeout', function () {
       name: 'should be able to pass multiple arguments to a timeout',
       init: () => {
         setTimeout(function (...args) {
-          state = args.join(' ');
+          window.state = args.join(' ');
         }, 10, 'arg1', 'arg2', 'arg3', 'arg4');
       },
       timed: true,
@@ -64,21 +64,21 @@ describe('Virtual setTimeout', function () {
       });
       it('and not run it before a goTo', async function () {
         expect(await page.evaluate(function () {
-          return state;
+          return window.state;
         })).to.equal('not ran');
       });
       if (timed) {
         it('and not run it before its timeout', async function () {
           expect(await page.evaluate(async function () {
             await timeweb.goTo(5);
-            return state;
+            return window.state;
           })).to.equal('not ran');
         });
       }
       it('and run it after its timeout', async function () {
         expect(await page.evaluate(async function () {
           await timeweb.goTo(20);
-          return state;
+          return window.state;
         })).to.equal(expected);
       });
     });
@@ -105,7 +105,7 @@ describe('Virtual setTimeout', function () {
           await page.evaluate(function ({ times }) {
             times.forEach(function (time) {
               setTimeout(function () {
-                state.push(time.toString());
+                window.state.push(time.toString());
               }, time);
             });
           }, { times });
@@ -115,7 +115,7 @@ describe('Virtual setTimeout', function () {
             for (let i = 0; i < sortedTimes.length; i++) {
               await timeweb.goTo(sortedTimes[i] + 0.5);
             }
-            return state.join(' ');
+            return window.state.join(' ');
           })).to.equal(sortedTimes.map(t => t.toString()).join(' '));
         });
         it('should not run multiple timeouts before their times', async function () {
@@ -123,24 +123,24 @@ describe('Virtual setTimeout', function () {
             for (let i = 0; i < sortedTimes.length; i++) {
               await timeweb.goTo(sortedTimes[i] + 0.5);
               var expected = sortedTimes.slice(0, i + 1).join(' ');
-              if (state.join(' ') !== expected) {
-                return 'Expected: ' + expected + ' Got: ' + state.join(' ');
+              if (window.state.join(' ') !== expected) {
+                return 'Expected: ' + expected + ' Got: ' + window.state.join(' ');
               }
             }
-            return state.join(' ');
+            return window.state.join(' ');
           })).to.equal(sortedTimes.map(t => t.toString()).join(' '));
         });
         var midTime = sortedTimes[Math.ceil((sortedTimes.length)/2)];
         it('should be able to process multiple timeouts in one goTo', async function () {
           expect(await page.evaluate(async function () {
             await timeweb.goTo(sortedTimes[sortedTimes.length - 1] + 0.5);
-            return state.join(' ');
+            return window.state.join(' ');
           })).to.equal(sortedTimes.map(t => t.toString()).join(' '));
         });
         it('should not run multiple timeouts before their times in one goTo', async function () {
           expect(await page.evaluate(async function ({ time }) {
             await timeweb.goTo(time);
-            return state.join(' ');
+            return window.state.join(' ');
           }, { time: midTime + 0.5 })).to.equal(
             sortedTimes
               .filter(t => (t <= midTime))
