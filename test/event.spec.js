@@ -77,7 +77,7 @@ describe('timeweb should support events', function () {
           {
             name: 'Prevents goTo from resolving by returning a promise with the wait option',
             init: () => {
-              window.handlerFunction = (p, e) => p;
+              window.handlerFunction = p => p;
               window.handlerOptions = { wait: true };
             },
             expected: 'handler goTo'
@@ -93,7 +93,7 @@ describe('timeweb should support events', function () {
           {
             name: 'Returning a promise without the wait option doesn\'t prevent goTo from resolving',
             init: () => {
-              window.handlerFunction = (p, e) => p;
+              window.handlerFunction = p => p;
             },
             expected: 'goTo handler'
           },
@@ -142,10 +142,10 @@ describe('timeweb should support events', function () {
         });
       });
 
-      it(`Event should get a virtualTime property equal to virtual time`, async function () {
+      it('Event should get a virtualTime property equal to virtual time', async function () {
         expect(await page.evaluate(async function ({ type }) {
           var time;
-          timeweb.on(type, function(e) {
+          timeweb.on(type, function (e) {
             // TODO: change this to an explicit timeweb function
             // without possible side effects
             time = e.virtualTime === Date.now();
@@ -154,10 +154,10 @@ describe('timeweb should support events', function () {
           return time;
         }, { type })).to.true;
       });
-      it(`Event should get an event detail`, async function () {
+      it('Event should get an event detail', async function () {
         expect(await page.evaluate(async function ({ type }) {
           var detail;
-          timeweb.on(type, function(e) {
+          timeweb.on(type, function (e) {
             detail = e.detail;
           });
           await timeweb.goTo(10, { detail: 'foo' });
