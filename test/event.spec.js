@@ -119,11 +119,13 @@ describe('timeweb should support events', function () {
           it(name, async function () {
             await page.evaluate(init);
             expect(await page.evaluate(async function ({ type }) {
-              return new Promise(async function (resolve) {
-                var handlerPromise;
+              var timeoutPromise = new Promise(function (resolve) {
                 window.oldSetTimeout(function () {
                   resolve('timed out');
                 }, 200);
+              });
+              async function run() {
+                var handlerPromise;
                 timeweb.on(type, async function (e) {
                   handlerPromise = new Promise(function (r) {
                     window.oldSetTimeout(r, 1);
@@ -135,8 +137,9 @@ describe('timeweb should support events', function () {
                 await timeweb.goTo(20);
                 window.state.push('goTo');
                 await handlerPromise;
-                resolve(window.state.join(' '));
-              });
+                return window.state.join(' ');
+              }
+              return Promise.race([ timeoutPromise, run() ]);
             }, { type })).to.equal(expected);
           });
         });
