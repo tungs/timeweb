@@ -28,6 +28,21 @@ describe('goTo', function () {
           }
         },
         {
+          name: 'should not run an animation frame when skipAnimate is set to true',
+          options: { skipAnimate: true },
+          init() {
+            window.testInit = () => {
+              window.testRan = false;
+              requestAnimationFrame(function () {
+                window.testRan = true;
+              });
+            }
+            window.testCondition = () => {
+              return !window.testRan;
+            }
+          }
+        },
+        {
           name: 'should run an animation frame with every goTo',
           init() {
             window.testInit = () => {
@@ -59,20 +74,20 @@ describe('goTo', function () {
             }
           }
         }
-      ].forEach(function ({ name, init }) {
+      ].forEach(function ({ name, init, options }) {
         it(name, async function () {
           await page.evaluate(init);
-          expect(await page.evaluate(async function ({ iterations }) {
+          expect(await page.evaluate(async function ({ iterations, options }) {
             var i;
             for (i = 0; i < iterations; i++) {
               window.testInit();
-              await timeweb.goTo((i + 1) * 20);
+              await timeweb.goTo((i + 1) * 20, options);
               if (!window.testCondition()) {
                 return i;
               }
             }
             return i;
-          }, { iterations })).to.equal(iterations);
+          }, { iterations, options })).to.equal(iterations);
         });
       });
     });

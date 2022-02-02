@@ -8,9 +8,11 @@ describe('Virtual setTimeout', function () {
   });
 
   [
-    { name: 'With a timeout parameter', init: () => (window.timeout = fn => setTimeout(fn, 10)) },
-    { name: 'With a timeout parameter and argument', init: () => (window.timeout = fn => setTimeout(fn, 10, 11)) },
-    { name: 'Without a timeout parameter', init: () => (window.timeout = fn => setTimeout(fn)) }
+    { name: 'With a function', init: () => (window.timeout = () => setTimeout(()=>{})) },
+    { name: 'With a function and timeout', init: () => (window.timeout = () => setTimeout(()=>{}, 10)) },
+    { name: 'With a function, timeout, and argument', init: () => (window.timeout = () => setTimeout(()=>{}, 10, 11)) },
+    { name: 'With a string', init: () => (window.timeout = () => setTimeout('\'\'')) },
+    { name: 'With a string and timeout', init: () => (window.timeout = () => setTimeout('\'\'', 10)) },
   ].forEach(function ({ name, init}) {
     describe(name, function () {
       beforeEach(async function () {
@@ -170,8 +172,8 @@ describe('Virtual setTimeout', function () {
             return 'Expected: ' + i + ' Got: ' + window.state;
           }
         }
-        return i;
-      })).to.equal(5);
+        return window.state;
+      })).to.equal(4);
     });
     it('should be called with one goTo', async function () {
       expect(await page.evaluate(async function () {
