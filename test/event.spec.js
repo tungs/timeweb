@@ -102,7 +102,7 @@ describe('timeweb should support events', function () {
             init: () => {
               window.handlerFunction = (p, e) => {
                 e.waitAfterFor(p);
-              }
+              };
             },
             expected: 'handler goTo'
           },
@@ -111,7 +111,7 @@ describe('timeweb should support events', function () {
             init: () => {
               window.handlerFunction = (p, e) => {
                 e.waitImmediatelyAfterFor(p);
-              }
+              };
             },
             expected: 'handler goTo'
           }
@@ -128,7 +128,7 @@ describe('timeweb should support events', function () {
                   handlerPromise = new Promise(function (r) {
                     window.oldSetTimeout(r, 1);
                   }).then(function () {
-                    window.state.push('handler')
+                    window.state.push('handler');
                   });
                   return window.handlerFunction(handlerPromise, e);
                 }, window.handlerOptions);

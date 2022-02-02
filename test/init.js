@@ -16,7 +16,7 @@ const timewebLib = fs.readFileSync(
 );
 
 function getTestPageURL(filePath) {
-  return 'file://' + path.resolve(testFolder, 'pages', filePath)
+  return 'file://' + path.resolve(testFolder, 'pages', filePath);
 };
 before (async function () {
   global.expect = expect;
@@ -33,7 +33,7 @@ before (async function () {
   };
   global.pause = function (ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
+  };
 });
 
 after (async function () {

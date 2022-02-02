@@ -21,10 +21,10 @@ describe('goTo', function () {
             // without possible side effects
             window.testInit = () => {
               window.startTime = Date.now();
-            }
+            };
             window.testCondition = () => {
               return Date.now() - window.startTime === 20;
-            }
+            };
           }
         },
         {
@@ -36,10 +36,10 @@ describe('goTo', function () {
               requestAnimationFrame(function () {
                 window.testRan = true;
               });
-            }
+            };
             window.testCondition = () => {
               return !window.testRan;
-            }
+            };
           }
         },
         {
@@ -50,10 +50,10 @@ describe('goTo', function () {
               requestAnimationFrame(function () {
                 window.testRan = true;
               });
-            }
+            };
             window.testCondition = () => {
               return window.testRan;
-            }
+            };
           }
         },
         {
@@ -68,10 +68,10 @@ describe('goTo', function () {
                 window.oldFrameTime = window.newFrameTime;
                 window.newFrameTime = Date.now();
               });
-            }
+            };
             window.testCondition = () => {
               return window.newFrameTime >= window.oldFrameTime;
-            }
+            };
           }
         }
       ].forEach(function ({ name, init, options }) {

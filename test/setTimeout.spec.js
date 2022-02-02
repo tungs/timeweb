@@ -23,7 +23,7 @@ describe('Virtual setTimeout', function () {
           return window.timeout(function () {});
         })).to.be.above(0).and.to.satisfy(Number.isInteger);
       });
-    })
+    });
   });
 
 
@@ -148,7 +148,7 @@ describe('Virtual setTimeout', function () {
               .join(' ')
           );
         });
-      })
+      });
     });
   });
 
@@ -177,7 +177,7 @@ describe('Virtual setTimeout', function () {
     });
     it('should be called with one goTo', async function () {
       expect(await page.evaluate(async function () {
-        await timeweb.goTo(40.5)
+        await timeweb.goTo(40.5);
         return window.state;
       })).to.equal(4);
     });
