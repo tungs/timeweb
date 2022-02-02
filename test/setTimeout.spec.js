@@ -1,22 +1,99 @@
 describe('Virtual setTimeout', function () {
   var page;
-  var unsortedTimes = [
-    10, 60, 20, 40, 80, 30
-  ];
-  var sortedTimes = unsortedTimes.sort();
   beforeEach(async function () {
     page = await newPage('basic.html');
-    await page.evaluate(function ( { unsortedTimes, sortedTimes } ) {
-      window.state = [];
-      window.unsortedTimes = unsortedTimes;
-      window.sortedTimes = sortedTimes;
-    }, { unsortedTimes, sortedTimes })
   });
   afterEach(async function () {
     return page.close();
   });
 
-  describe('multiple timeouts', function () {
+  [
+    { name: 'With a timeout parameter', init: () => (window.timeout = fn => setTimeout(fn, 10)) },
+    { name: 'With a timeout parameter and argument', init: () => (window.timeout = fn => setTimeout(fn, 10, 11)) },
+    { name: 'Without a timeout parameter', init: () => (window.timeout = fn => setTimeout(fn)) }
+  ].forEach(function ({ name, init}) {
+    describe(name, function () {
+      beforeEach(async function () {
+        await page.evaluate(init);
+      });
+      it('should return a positive integer id', async function () {
+        expect(await page.evaluate(function () {
+          return timeout(function () {});
+        })).to.be.above(0).and.to.satisfy(Number.isInteger);
+      });
+    })
+  });
+
+
+  [
+    {
+      name: 'should be able to pass multiple arguments to a timeout',
+      init: () => {
+        setTimeout(function (...args) {
+          state = args.join(' ');
+        }, 10, 'arg1', 'arg2', 'arg3', 'arg4');
+      },
+      timed: true,
+      expected: 'arg1 arg2 arg3 arg4'
+    },
+    {
+      name: 'with a timeout, should be able to be passed a string',
+      init: () => {
+        setTimeout('window.state = \'evaluated\';', 10);
+      },
+      timed: true,
+      expected: 'evaluated'
+    },
+    {
+      name: 'without a timeout, should be able to be passed a string',
+      init: () => {
+        setTimeout('window.state = \'evaluated\';');
+      },
+      timed: false,
+      expected: 'evaluated'
+    }
+  ].forEach(function ({ name, init, timed, expected }) {
+    describe(name, function () {
+      beforeEach(async function () {
+        await page.evaluate(function () {
+          window.state = 'not ran';
+        });
+        await page.evaluate(init);
+      });
+      it('and not run it before a goTo', async function () {
+        expect(await page.evaluate(function () {
+          return state;
+        })).to.equal('not ran');
+      });
+      if (timed) {
+        it('and not run it before its timeout', async function () {
+          expect(await page.evaluate(async function () {
+            await timeweb.goTo(5);
+            return state;
+          })).to.equal('not ran');
+        });
+      }
+      it('and run it after its timeout', async function () {
+        expect(await page.evaluate(async function () {
+          await timeweb.goTo(20);
+          return state;
+        })).to.equal(expected);
+      });
+    });
+  });
+
+  describe('Multiple timeouts', function () {
+    var unsortedTimes = [
+      10, 60, 20, 40, 80, 30
+    ];
+    var sortedTimes = unsortedTimes.sort((a, b) => a - b);
+    beforeEach(async function () {
+      await page.evaluate(function ({ unsortedTimes, sortedTimes }) {
+        window.state = [];
+        window.unsortedTimes = unsortedTimes;
+        window.sortedTimes = sortedTimes;
+      }, { unsortedTimes, sortedTimes });
+    });
     [
       { name: 'with sequential times', times: sortedTimes },
       { name: 'with nonsequential times', times: unsortedTimes }
@@ -58,7 +135,7 @@ describe('Virtual setTimeout', function () {
             return state.join(' ');
           })).to.equal(sortedTimes.map(t => t.toString()).join(' '));
         });
-        it('should not run multiple timeouts before their time in one goTo', async function () {
+        it('should not run multiple timeouts before their times in one goTo', async function () {
           expect(await page.evaluate(async function ({ time }) {
             await timeweb.goTo(time);
             return state.join(' ');
@@ -73,4 +150,34 @@ describe('Virtual setTimeout', function () {
     });
   });
 
+  describe('Chained timeouts', function () {
+    beforeEach(async function () {
+      await page.evaluate(function () {
+        window.state = 0;
+        window.run = function () {
+          window.state++;
+          setTimeout(window.run, 10);
+        };
+        setTimeout(window.run, 10);
+      });
+    });
+    it('should be called with sequential goTos', async function () {
+      expect(await page.evaluate(async function () {
+        var i;
+        for (i = 0; i < 5; i++) {
+          await timeweb.goTo(i * 10 + 0.5);
+          if (window.state !== i) {
+            return 'Expected: ' + i + ' Got: ' + window.state;
+          }
+        }
+        return i;
+      })).to.equal(5);
+    });
+    it('should be called with one goTo', async function () {
+      expect(await page.evaluate(async function () {
+        await timeweb.goTo(40.5)
+        return window.state;
+      })).to.equal(4);
+    });
+  });
 });

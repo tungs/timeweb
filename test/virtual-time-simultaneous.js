@@ -28,7 +28,7 @@ describe('Simultaneous Virtual Callbacks', function () {
       [
         1, 2, 5, 100
       ].forEach(function (iterations) {
-        var description = 'Should be able to run ' +
+        var description = 'should be able to run ' +
           (iterations === 1 ? 'one callback' : iterations + ' simultaneous callbacks');
         it(description, async function () {
           await page.evaluate(async function ({ iterations }) {

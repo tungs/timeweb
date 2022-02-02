@@ -9,18 +9,21 @@ describe('timeweb should support events', function () {
   afterEach(async function () {
     return page.close();
   });
+  // TODO: multiple runs
   [
     {
       capitalizedType: 'Preseek',
-      basicDescription: 'should occur before seek',
+      basicDescription: 'should occur once before seek',
       basicInit: () => {
         setTimeout(() => state.push('seek'));
       },
+      onlyOncePerGoTo: true,
       basicExpected: 'preseek seek'
     },
     {
       capitalizedType: 'Postseek',
-      basicDescription: 'should occur after seek',
+      basicDescription: 'should occur once after seek',
+      onlyOncePerGoTo: true,
       basicInit: () => {
         setTimeout(() => state.push('seek'));
       },
@@ -29,6 +32,8 @@ describe('timeweb should support events', function () {
     {
       capitalizedType: 'Preanimate',
       basicDescription: 'should occur before animate',
+      // currently only goes once per goTo, but it's not necessarily the case
+      onlyOncePerGoTo: false,
       basicInit: () => {
         requestAnimationFrame(() => state.push('animate'));
       },
@@ -37,21 +42,28 @@ describe('timeweb should support events', function () {
     {
       capitalizedType: 'Postanimate',
       basicDescription: 'should occur after animate',
+      // currently only goes once per goTo, but it's not necessarily the case
+      onlyOncePerGoTo: false,
       basicInit: () => {
         requestAnimationFrame(() => state.push('animate'));
       },
       basicExpected: 'animate postanimate'
     }
-  ].forEach(function ({ capitalizedType, basicInit, basicExpected, basicDescription }) {
+  ].forEach(function ({ capitalizedType, basicInit, onlyOncePerGoTo, basicExpected, basicDescription }) {
     var type = capitalizedType.toLowerCase();
     describe(`${capitalizedType} event handling`, function () {
       it(basicDescription, async function () {
         await page.evaluate(basicInit);
-        expect(await page.evaluate(async function ( { type } ) {
+        let result = await page.evaluate(async function ( { type } ) {
           timeweb.on(type, () => state.push(type));
           await timeweb.goTo(20);
           return state.join(' ');
-        }, { type })).to.equal(basicExpected);
+        }, { type });
+        if (onlyOncePerGoTo) {
+          expect(result).to.equal(basicExpected);
+        } else {
+          expect(result).to.satisfy(s => s.startsWith(basicExpected));
+        }
       });
       describe('Async function handling', function () {
         [
