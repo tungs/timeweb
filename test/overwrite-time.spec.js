@@ -27,11 +27,10 @@ describe('timeweb should overwrite time handling functions', function () {
       ['requestAnimationFrame', () => new Promise(r => requestAnimationFrame(r)) ]
     ].forEach(function ([ name, fn ]) {
       it(name, async function () {
-        expect(await new Promise(function (resolve) {
-          // note the lack of awaits
-          pause(50).then(() => resolve('timed out'));
-          page.evaluate(fn).then(() => resolve(`${name} resolved`));
-        })).to.equal('timed out');
+        expect(await Promise.race([
+          pause(50).then(() => 'timed out'),
+          page.evaluate(fn).then(() => `${name} resolved`)
+        ])).to.equal('timed out');
       });
     });
   });
