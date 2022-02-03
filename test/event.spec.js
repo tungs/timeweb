@@ -68,7 +68,7 @@ describe('timeweb should support events', function () {
       describe('Async function handling', function () {
         beforeEach(async function () {
           await page.evaluate(function ({ type }) {
-            window.run = async function(handlerFunction, handlerOptions) {
+            window.run = async function (handlerFunction, handlerOptions) {
               var handlerPromise;
               timeweb.on(type, async function (e) {
                 handlerPromise = new Promise(function (r) {
@@ -87,7 +87,7 @@ describe('timeweb should support events', function () {
         });
         describe('With the wait option', function () {
           describe('Prevents goTo from resolving', function () {
-            it('by returning a promise', async function() {
+            it('by returning a promise', async function () {
               expect(await page.evaluate(function () {
                 return window.run(p => p, { wait: true });
               })).to.equal('handler goTo');
@@ -125,8 +125,8 @@ describe('timeweb should support events', function () {
                 return window.run(p => p);
               })).to.equal('goTo handler');
             });
-          });            
-        })
+          });
+        });
       });
 
       it('Event should get a virtualTime property equal to virtual time', async function () {
@@ -150,6 +150,22 @@ describe('timeweb should support events', function () {
           await timeweb.goTo(10, { detail: 'foo' });
           return detail;
         }, { type })).to.equal('foo');
+      });
+    });
+  });
+
+  // TODO: potentially use this as another looping option for `preseek` and `postseek`
+  describe('using skipAnimate in goTo, should skip animation events', function () {
+    [
+      'preanimate', 'postanimate'
+    ].forEach(function (type) {
+      it(type, async function () {
+        expect(await page.evaluate(async function ({ type }) {
+          var state = 'unran';
+          timeweb.on(type, () => state = 'ran');
+          await timeweb.goTo(20, { skipAnimate: true });
+          return state;
+        }, { type })).to.equal('unran');
       });
     });
   });
