@@ -96,38 +96,46 @@ describe('timeweb should support events', function () {
           }, { type });
         });
         describe('With the wait option', function () {
-          it('Prevents goTo from resolving by returning a promise', async function() {
-            expect(await page.evaluate(function () {
-              return window.race(p => p, { wait: true });
-            })).to.equal('handler goTo');
+          describe('Prevents goTo from resolving', function () {
+            it('by returning a promise', async function() {
+              expect(await page.evaluate(function () {
+                return window.race(p => p, { wait: true });
+              })).to.equal('handler goTo');
+            });
           });
-          it('Doesn\'t prevent goTo from resolving when not returning a promise', async function () {
-            expect(await page.evaluate(function () {
-              return window.race(() => {}, { wait: true });
-            })).to.equal('goTo handler');
+          describe('Doesn\'t prevent goTo from resolving', function () {
+            it('when not returning a promise', async function () {
+              expect(await page.evaluate(function () {
+                return window.race(() => {}, { wait: true });
+              })).to.equal('goTo handler');
+            });
           });
         });
         describe('Without the wait option', function () {
-          it('Doesn\'t normally prevent goTo from resolving', async function() {
-            expect(await page.evaluate(function () {
-              return window.race(() => {});
-            })).to.equal('goTo handler');
+          describe('Prevents goTo from resolving', function () {
+            it('by calling waitAfterFor with a promise', async function () {
+              expect(await page.evaluate(function () {
+                return window.race((p, e) => { e.waitAfterFor(p); });
+              })).to.equal('handler goTo');
+            });
+            it('by calling waitImmediatelyAfterFor with a promise', async function () {
+              expect(await page.evaluate(function () {
+                return window.race((p, e) => { e.waitImmediatelyAfterFor(p); });
+              })).to.equal('handler goTo');
+            });
           });
-          it('Doesn\'t prevent goTo from resolving when returning a promise', async function () {
-            expect(await page.evaluate(function () {
-              return window.race(p => p);
-            })).to.equal('goTo handler');
-          });
-          it('Prevents goTo from resolving by calling waitAfterFor with a promise', async function () {
-            expect(await page.evaluate(function () {
-              return window.race((p, e) => { e.waitAfterFor(p); });
-            })).to.equal('handler goTo');
-          });
-          it('Prevents goTo from resolving by calling waitImmediatelyAfterFor with a promise', async function () {
-            expect(await page.evaluate(function () {
-              return window.race((p, e) => { e.waitImmediatelyAfterFor(p); });
-            })).to.equal('handler goTo');
-          });
+          describe('Doesn\'t prevent goTo from resolving', function () {
+            it('normally', async function() {
+              expect(await page.evaluate(function () {
+                return window.race(() => {});
+              })).to.equal('goTo handler');
+            });
+            it('when returning a promise', async function () {
+              expect(await page.evaluate(function () {
+                return window.race(p => p);
+              })).to.equal('goTo handler');
+            });
+          });            
         })
       });
 
