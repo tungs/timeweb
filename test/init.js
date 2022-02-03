@@ -3,13 +3,23 @@ const path = require('path');
 const { expect } = require('chai');
 const { chromium, webkit, firefox } = require('playwright');
 
-var browserType = chromium;
+var browserType;
 var oldExpect = global.expect;
 var oldNewPage = global.newPage;
 var oldPause = global.pause;
 var testFolder = __dirname;
 var browser;
 
+console.log('Env Browser: ' + process.env.BROWSER);
+if (process.env.BROWSER === 'chromium') {
+  browserType = chromium;
+} else if (process.env.BROWSER === 'firefox') {
+  browserType = firefox;
+} else if (process.env.BROWSER === 'webkit') {
+  browserType = webkit;
+} else {
+  browserType = chromium;
+}
 const timewebLib = fs.readFileSync(
   path.resolve(testFolder, 'pages', 'timeweb.js'),
   { encoding: 'utf8' }
@@ -19,10 +29,12 @@ function getTestPageURL(filePath) {
   return 'file://' + path.resolve(testFolder, 'pages', filePath);
 }
 before (async function () {
+  this.timeout(60000);
   global.expect = expect;
   browser = await browserType.launch({
     dumpio: true
   });
+  console.log(`Using browser:  ${browserType.name()} v${browser.version()}`);
   global.newPage = async function (testPage, beforeLoad) {
     var page = await browser.newPage();
     if (beforeLoad) {
@@ -34,6 +46,9 @@ before (async function () {
   global.pause = function (ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   };
+  // apparently some browsers (webkit) can sometimes
+  // some time after opening the first page
+  return global.newPage('basic.html').then(p => p.close());
 });
 
 after (async function () {
