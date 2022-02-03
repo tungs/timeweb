@@ -44,7 +44,7 @@ before (async function () {
     return new Promise(resolve => setTimeout(resolve, ms));
   };
   // apparently some browsers (webkit) can sometimes
-  // some time after opening the first page
+  // take some time after opening the first page
   let firstPage = await global.newPage('basic.html');
   await firstPage.close();
 });
