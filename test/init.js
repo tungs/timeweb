@@ -1,4 +1,3 @@
-const fs = require('fs');
 const path = require('path');
 const { expect } = require('chai');
 const { chromium, webkit, firefox } = require('playwright');
@@ -21,10 +20,6 @@ if (process.env.BROWSER === 'chromium') {
 } else {
   browserType = chromium;
 }
-const timewebLib = fs.readFileSync(
-  path.resolve(testFolder, 'pages', 'timeweb.js'),
-  { encoding: 'utf8' }
-);
 
 function getTestPageURL(filePath) {
   return 'file://' + path.resolve(testFolder, 'pages', filePath);
