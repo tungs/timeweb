@@ -48,7 +48,8 @@ before (async function () {
   };
   // apparently some browsers (webkit) can sometimes
   // some time after opening the first page
-  return global.newPage('basic.html').then(p => p.close());
+  let firstPage = await global.newPage('basic.html');
+  await firstPage.close();
 });
 
 after (async function () {
