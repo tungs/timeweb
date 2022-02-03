@@ -115,7 +115,7 @@ describe('timeweb should support events', function () {
             });
           });
           describe('Doesn\'t prevent goTo from resolving', function () {
-            it('normally', async function() {
+            it('normally', async function () {
               expect(await page.evaluate(function () {
                 return window.run(() => {});
               })).to.equal('goTo handler');

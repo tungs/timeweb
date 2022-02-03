@@ -10,6 +10,7 @@ var oldPause = global.pause;
 var testFolder = __dirname;
 var browser;
 
+// eslint-disable-next-line no-console
 console.log('Env Browser: ' + process.env.BROWSER);
 if (process.env.BROWSER === 'chromium') {
   browserType = chromium;
@@ -34,6 +35,7 @@ before (async function () {
   browser = await browserType.launch({
     dumpio: true
   });
+  // eslint-disable-next-line no-console
   console.log(`Using browser:  ${browserType.name()} v${browser.version()}`);
   global.newPage = async function (testPage, beforeLoad) {
     var page = await browser.newPage();
