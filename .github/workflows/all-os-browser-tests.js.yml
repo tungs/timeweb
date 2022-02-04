@@ -1,21 +1,18 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: Built Library CI
+name: OS and Browser Combination Tests
 
-on: [ push, pull_request ]
+on: [ workflow_dispatch ]
 
 jobs:
-  in_browser:
-
+  build_and_test:
     name: ${{ matrix.os }} (${{ matrix.browser }})
     runs-on: $${{ matrix.os }}
-
     strategy:
       matrix:
         browser: ['chromium', 'firefox', 'webkit']
         os: [ ubuntu-20.04, macos-10.15, macos-11.0, windows-latest ]
-
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v2
