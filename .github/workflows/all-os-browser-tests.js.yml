@@ -10,6 +10,7 @@ jobs:
     name: ${{ matrix.os }} (${{ matrix.browser }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         browser: ['chromium', 'firefox', 'webkit']
         os: [ ubuntu-latest, macos-10.15, macos-11.0, windows-latest ]
@@ -20,7 +21,9 @@ jobs:
         node-version: 12
         cache: 'npm'
     - run: npm ci
-    - run: npx playwright install-deps
+      env:
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+    - run: npx playwright install --with-deps ${{ matrix.browser }} chromium
     - run: npm run build --if-present
     - run: npm test
       env:
