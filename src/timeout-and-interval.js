@@ -1,5 +1,4 @@
-import { getNewId, virtualNow, setVirtualTime, exportObject } from './shared.js';
-var startTime = virtualNow();
+import { getNewId, virtualNow, setVirtualTime, exportObject, startTime } from './shared.js';
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
 // window.requestAnimationFrame, window.setTimeout, and window.setInterval

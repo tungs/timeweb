@@ -42,6 +42,8 @@
 
   var virtualTime = Date.now();
 
+  const startTime = virtualTime;
+
   function setVirtualTime(time) {
     virtualTime = time;
   }
@@ -119,7 +121,6 @@
     createElementNS: realtimeCreateElementNS
   };
 
-  var startTime = virtualNow();
   // a block is a segment of blocking code, wrapped in a function
   // to be run at a certain virtual time. They're created by
   // window.requestAnimationFrame, window.setTimeout, and window.setInterval
@@ -236,6 +237,7 @@
 
   var animationFrameBlocks = [];
   var currentAnimationFrameBlocks = [];
+
   function virtualRequestAnimationFrame(fn) {
     var id = getNewId();
     animationFrameBlocks.push({
@@ -266,7 +268,7 @@
       // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
       // the passed argument to the callback should be the starting time of the
       // chunk of requestAnimationFrame callbacks that are called for that particular frame
-      block.fn(virtualNow());
+      block.fn(virtualNow() - startTime);
     }
   }
 
@@ -677,7 +679,9 @@
 
   // overwriting built-in functions...
   exportObject.Date = VirtualDate;
-  exportObject.performance.now = virtualNow;
+  exportObject.performance.now = function () {
+    return virtualNow() - startTime;
+  };
   exportObject.setTimeout = virtualSetTimeout;
   exportObject.requestAnimationFrame = virtualRequestAnimationFrame;
   exportObject.setInterval = virtualSetInterval;
