@@ -1,8 +1,7 @@
-import { getNewId, virtualNow } from './shared.js';
+import { getNewId, virtualNow, startTime } from './shared.js';
 
 var animationFrameBlocks = [];
 var currentAnimationFrameBlocks = [];
-var startTime = virtualNow();
 
 export function virtualRequestAnimationFrame(fn) {
   var id = getNewId();

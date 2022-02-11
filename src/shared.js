@@ -3,6 +3,8 @@ export var exportDocument = typeof document !== 'undefined' ? document : undefin
 
 var virtualTime = Date.now();
 
+export const startTime = virtualTime;
+
 export function setVirtualTime(time) {
   virtualTime = time;
 }

@@ -36,6 +36,8 @@ var exportDocument = typeof document !== 'undefined' ? document : undefined;
 
 var virtualTime = Date.now();
 
+const startTime = virtualTime;
+
 function setVirtualTime(time) {
   virtualTime = time;
 }
@@ -113,7 +115,6 @@ let realtime = {
   createElementNS: realtimeCreateElementNS
 };
 
-var startTime$1 = virtualNow();
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
 // window.requestAnimationFrame, window.setTimeout, and window.setInterval
@@ -143,12 +144,12 @@ function processUntilTime(ms) {
   // because other methods (i.e. sortPendingBlocks and virtualClearTimeout)
   // create new references to pendingBlocks
   sortPendingBlocks();
-  while (pendingBlocks.length && pendingBlocks[0].time <= startTime$1 + ms) {
+  while (pendingBlocks.length && pendingBlocks[0].time <= startTime + ms) {
     processNextBlock();
     sortPendingBlocks();
   }
   // TODO: maybe wait a little while for possible promises to resolve?
-  setVirtualTime(startTime$1 + ms);
+  setVirtualTime(startTime + ms);
 }
 
 // By assigning eval to a variable, it is invoked indirectly,
@@ -230,7 +231,6 @@ function virtualClearTimeout(id) {
 
 var animationFrameBlocks = [];
 var currentAnimationFrameBlocks = [];
-var startTime = virtualNow();
 
 function virtualRequestAnimationFrame(fn) {
   var id = getNewId();
@@ -673,7 +673,9 @@ if (exportDocument) {
 
 // overwriting built-in functions...
 exportObject.Date = VirtualDate;
-exportObject.performance.now = virtualNow;
+exportObject.performance.now = function () {
+  return virtualNow() - startTime;
+};
 exportObject.setTimeout = virtualSetTimeout;
 exportObject.requestAnimationFrame = virtualRequestAnimationFrame;
 exportObject.setInterval = virtualSetInterval;
