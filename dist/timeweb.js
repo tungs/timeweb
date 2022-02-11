@@ -119,7 +119,7 @@
     createElementNS: realtimeCreateElementNS
   };
 
-  var startTime = virtualNow();
+  var startTime$1 = virtualNow();
   // a block is a segment of blocking code, wrapped in a function
   // to be run at a certain virtual time. They're created by
   // window.requestAnimationFrame, window.setTimeout, and window.setInterval
@@ -149,12 +149,12 @@
     // because other methods (i.e. sortPendingBlocks and virtualClearTimeout)
     // create new references to pendingBlocks
     sortPendingBlocks();
-    while (pendingBlocks.length && pendingBlocks[0].time <= startTime + ms) {
+    while (pendingBlocks.length && pendingBlocks[0].time <= startTime$1 + ms) {
       processNextBlock();
       sortPendingBlocks();
     }
     // TODO: maybe wait a little while for possible promises to resolve?
-    setVirtualTime(startTime + ms);
+    setVirtualTime(startTime$1 + ms);
   }
 
   // By assigning eval to a variable, it is invoked indirectly,
@@ -236,6 +236,8 @@
 
   var animationFrameBlocks = [];
   var currentAnimationFrameBlocks = [];
+  var startTime = virtualNow();
+
   function virtualRequestAnimationFrame(fn) {
     var id = getNewId();
     animationFrameBlocks.push({
@@ -266,7 +268,7 @@
       // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
       // the passed argument to the callback should be the starting time of the
       // chunk of requestAnimationFrame callbacks that are called for that particular frame
-      block.fn(virtualNow());
+      block.fn(virtualNow() - startTime);
     }
   }
 

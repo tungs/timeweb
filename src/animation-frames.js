@@ -2,6 +2,8 @@ import { getNewId, virtualNow } from './shared.js';
 
 var animationFrameBlocks = [];
 var currentAnimationFrameBlocks = [];
+var startTime = virtualNow();
+
 export function virtualRequestAnimationFrame(fn) {
   var id = getNewId();
   animationFrameBlocks.push({
@@ -32,6 +34,6 @@ export function runAnimationFrames() {
     // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
     // the passed argument to the callback should be the starting time of the
     // chunk of requestAnimationFrame callbacks that are called for that particular frame
-    block.fn(virtualNow());
+    block.fn(virtualNow() - startTime);
   }
 }
