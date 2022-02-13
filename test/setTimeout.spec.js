@@ -32,7 +32,7 @@ describe('Virtual setTimeout', function () {
 
   [
     {
-      name: 'should be able to pass multiple arguments to a timeout',
+      name: 'should be able to pass multiple arguments to a callback',
       init: () => {
         setTimeout(function (...args) {
           window.state = args.join(' ');
