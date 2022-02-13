@@ -155,7 +155,7 @@ describe('Virtual setInterval', function () {
               let intervalRan = false;
               setInterval(function () {
                 if (!intervalRan) {
-                  window.state.push(time.toString());                  
+                  window.state.push(time.toString());
                   intervalRan = true;
                 }
               }, time);
