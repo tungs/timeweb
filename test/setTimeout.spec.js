@@ -29,7 +29,6 @@ describe('Virtual setTimeout', function () {
     });
   });
 
-
   [
     {
       name: 'should be able to pass multiple arguments to a callback',

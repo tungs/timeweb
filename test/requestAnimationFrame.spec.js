@@ -24,16 +24,22 @@ describe('Virtual requestAnimationFrame', function () {
   });
 
   it('should pass a high resolution timestamp representing elapsed milliseconds since document creation', async function () {
-    var time = 28;
-    expect(await page.evaluate(function ({ time }) {
+    var time = 128;
+    var thresholdTime = 10;
+    expect(await page.evaluate(function ({ time, thresholdTime }) {
       return new Promise(function (resolve) {
         window.requestAnimationFrame(function (arg) {
-          resolve(arg);
+          if (isNaN(arg)) {
+            resolve('not a number');
+          } else if (arg > time + thresholdTime) {
+            resolve('exceeds goTo time');
+          } else if (arg >= time) {
+            resolve('matches');
+          }
         });
         timeweb.goTo(time);
       });
-      // there should be some care with comparing numbers in the node environment compared to browser environment, but they should be representing numbers the same way
-    }, { time })).to.equal(time);
+    }, { time, thresholdTime })).to.equal('matches');
   });
 
   describe('Simultaneous requests should run after a goTo', function () {
