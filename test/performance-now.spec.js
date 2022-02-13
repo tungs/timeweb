@@ -17,7 +17,7 @@ describe('Virtual performance.now', function () {
   });
   it('should return a timestamp representing elapsed milliseconds since document creation', async function () {
     var goToTime = 128;
-    var thresholdTime = 4;    
+    var thresholdTime = 4;
     expect(await page.evaluate(async function ({ goToTime }) {
       await timeweb.goTo(goToTime);
       var time = performance.now();

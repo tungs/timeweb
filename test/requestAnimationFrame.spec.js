@@ -23,22 +23,41 @@ describe('Virtual requestAnimationFrame', function () {
     })).to.be.false;
   });
 
-  it('Multiple requests should run in the order they\'re added', async function () {
-    var numRequests = 5;
-    expect(await page.evaluate(async function ({ numRequests }) {
-      var state = [];
-      [...new Array(numRequests)].forEach(function (_, i) {
-        window.requestAnimationFrame(function () {
-          state.push(i);
+  describe('Multiple requests', function () {
+    describe('should run after a goTo', function () {
+      [1, 2, 5, 10].forEach(function (numRequests) {
+        it(`${numRequests} request${numRequests>1?'s':''}`, async function () {
+          expect(await page.evaluate(async function ({ numRequests }) {
+            var ran = [];
+            [...new Array(numRequests)].forEach(function (_, i) {
+              window.requestAnimationFrame(function () {
+                ran[i] = true;
+              });
+            });
+            ran = [...new Array(numRequests)].map(() => false);
+            await timeweb.goTo(10);
+            return ran.join(' ');
+          }, { numRequests })).to.equal([...new Array(numRequests)].map(() => true).join(' '));
         });
       });
-      await timeweb.goTo(10);
-      return state;
-    }, { numRequests })).to.satisfy(function (result) {
-      return result.length === numRequests &&
-        result.reduce(function (a, b, i, arr) {
-          return a && (i < 1 ? true : b > arr[i - 1]);
-        }, true);
+    });
+    it('should run in the order they\'re added', async function () {
+      var numRequests = 5;
+      expect(await page.evaluate(async function ({ numRequests }) {
+        var state = [];
+        [...new Array(numRequests)].forEach(function (_, i) {
+          window.requestAnimationFrame(function () {
+            state.push(i);
+          });
+        });
+        await timeweb.goTo(10);
+        return state;
+      }, { numRequests })).to.satisfy(function (result) {
+        return result.length === numRequests &&
+          result.reduce(function (a, b, i, arr) {
+            return a && (i < 1 ? true : b > arr[i - 1]);
+          }, true);
+      });
     });
   });
 
@@ -87,24 +106,6 @@ describe('Virtual requestAnimationFrame', function () {
             return p && (i < 1 ? true : c === arr[i - 1]);
           });
         }, true);
-      });
-    });
-  });
-
-  describe('Simultaneous requests should run after a goTo', function () {
-    [1, 2, 5, 10].forEach(function (numRequests) {
-      it(`${numRequests} request${numRequests>1?'s':''}`, async function () {
-        expect(await page.evaluate(async function ({ numRequests }) {
-          var ran = [];
-          [...new Array(numRequests)].forEach(function (_, i) {
-            window.requestAnimationFrame(function () {
-              ran[i] = true;
-            });
-          });
-          ran = [...new Array(numRequests)].map(() => false);
-          await timeweb.goTo(10);
-          return ran.join(' ');
-        }, { numRequests })).to.equal([...new Array(numRequests)].map(() => true).join(' '));
       });
     });
   });
