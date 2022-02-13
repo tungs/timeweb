@@ -29,7 +29,6 @@ describe('Virtual setInterval', function () {
     });
   });
 
-
   [
     {
       name: 'should be able to pass multiple arguments to a callback',
@@ -203,6 +202,4 @@ describe('Virtual setInterval', function () {
       });
     });
   });
-
-
 });
