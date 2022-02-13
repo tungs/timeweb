@@ -29,7 +29,7 @@ describe('Virtual requestAnimationFrame', function () {
       var thresholdTime = 10;
       expect(await page.evaluate(function ({ time, thresholdTime }) {
         return new Promise(function (resolve) {
-          window.requestAnimationFrame(function (arg) {
+          window.requestAnimationFrame(function run(arg) {
             if (isNaN(arg)) {
               resolve('not a number');
             } else if (arg > time + thresholdTime) {
@@ -37,6 +37,7 @@ describe('Virtual requestAnimationFrame', function () {
             } else if (arg >= time) {
               resolve('matches');
             }
+            window.requestAnimationFrame(run);
           });
           timeweb.goTo(time);
         });
