@@ -40,9 +40,9 @@
   var exportObject = typeof window !== 'undefined' ? window : self;
   var exportDocument = typeof document !== 'undefined' ? document : undefined;
 
-  var virtualTime = Date.now();
+  var virtualTime = 0;
 
-  const startTime = virtualTime;
+  const startTime = Date.now();
 
   function setVirtualTime(time) {
     virtualTime = time;
@@ -150,12 +150,12 @@
     // because other methods (i.e. sortPendingBlocks and virtualClearTimeout)
     // create new references to pendingBlocks
     sortPendingBlocks();
-    while (pendingBlocks.length && pendingBlocks[0].time <= startTime + ms) {
+    while (pendingBlocks.length && pendingBlocks[0].time <= ms) {
       processNextBlock();
       sortPendingBlocks();
     }
     // TODO: maybe wait a little while for possible promises to resolve?
-    setVirtualTime(startTime + ms);
+    setVirtualTime(ms);
   }
 
   // By assigning eval to a variable, it is invoked indirectly,
@@ -179,6 +179,8 @@
       // If timeout is 0, there may be an infinite loop
       // Changing it to 1 shouldn't disrupt code, because
       // setTimeout doesn't usually execute code immediately
+      // Also note that virtual setInterval relies on this
+      // to prevent infinite loops with intervals of 0
       timeout = 1;
     }
     pendingBlocks.push({
@@ -268,7 +270,7 @@
       // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
       // the passed argument to the callback should be the starting time of the
       // chunk of requestAnimationFrame callbacks that are called for that particular frame
-      block.fn(virtualNow() - startTime);
+      block.fn(virtualNow());
     }
   }
 
@@ -310,13 +312,15 @@
   var VirtualDate = class Date extends oldDate {
     constructor() {
       if (!arguments.length) {
-        super(virtualNow());
+        super(virtualNow() + startTime);
       } else {
         super(...arguments);
       }
     }
   };
-  VirtualDate.now = virtualNow;
+  VirtualDate.now = function () {
+    return virtualNow() + startTime;
+  };
 
   function isThenable(o) {
     return o && (o.then instanceof Function);
@@ -679,9 +683,7 @@
 
   // overwriting built-in functions...
   exportObject.Date = VirtualDate;
-  exportObject.performance.now = function () {
-    return virtualNow() - startTime;
-  };
+  exportObject.performance.now = virtualNow;
   exportObject.setTimeout = virtualSetTimeout;
   exportObject.requestAnimationFrame = virtualRequestAnimationFrame;
   exportObject.setInterval = virtualSetInterval;

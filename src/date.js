@@ -1,13 +1,15 @@
-import { virtualNow } from './shared.js';
+import { virtualNow, startTime } from './shared.js';
 
 var oldDate = Date;
 export var VirtualDate = class Date extends oldDate {
   constructor() {
     if (!arguments.length) {
-      super(virtualNow());
+      super(virtualNow() + startTime);
     } else {
       super(...arguments);
     }
   }
 };
-VirtualDate.now = virtualNow;
+VirtualDate.now = function () {
+  return virtualNow() + startTime;
+};

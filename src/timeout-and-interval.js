@@ -1,4 +1,4 @@
-import { getNewId, virtualNow, setVirtualTime, exportObject, startTime } from './shared.js';
+import { getNewId, virtualNow, setVirtualTime, exportObject } from './shared.js';
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
 // window.requestAnimationFrame, window.setTimeout, and window.setInterval
@@ -28,12 +28,12 @@ export function processUntilTime(ms) {
   // because other methods (i.e. sortPendingBlocks and virtualClearTimeout)
   // create new references to pendingBlocks
   sortPendingBlocks();
-  while (pendingBlocks.length && pendingBlocks[0].time <= startTime + ms) {
+  while (pendingBlocks.length && pendingBlocks[0].time <= ms) {
     processNextBlock();
     sortPendingBlocks();
   }
   // TODO: maybe wait a little while for possible promises to resolve?
-  setVirtualTime(startTime + ms);
+  setVirtualTime(ms);
 }
 
 // By assigning eval to a variable, it is invoked indirectly,

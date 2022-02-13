@@ -132,10 +132,11 @@ describe('timeweb should support events', function () {
       it('Event should get a virtualTime property equal to virtual time', async function () {
         expect(await page.evaluate(async function ({ type }) {
           var time;
+          var startTime = Date.now();
           timeweb.on(type, function (e) {
             // TODO: change this to an explicit timeweb function
             // without possible side effects
-            time = e.virtualTime === Date.now();
+            time = e.virtualTime === (Date.now() - startTime);
           });
           await timeweb.goTo(10);
           return time;
