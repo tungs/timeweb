@@ -23,23 +23,52 @@ describe('Virtual requestAnimationFrame', function () {
     })).to.be.false;
   });
 
-  it('should pass a high resolution timestamp representing elapsed milliseconds since document creation', async function () {
-    var time = 128;
-    var thresholdTime = 10;
-    expect(await page.evaluate(function ({ time, thresholdTime }) {
-      return new Promise(function (resolve) {
-        window.requestAnimationFrame(function (arg) {
-          if (isNaN(arg)) {
-            resolve('not a number');
-          } else if (arg > time + thresholdTime) {
-            resolve('exceeds goTo time');
-          } else if (arg >= time) {
-            resolve('matches');
-          }
+  describe('passes a high resolution timestamp to its callback', function () {
+    it('representing elapsed milliseconds since document creation', async function () {
+      var time = 128;
+      var thresholdTime = 10;
+      expect(await page.evaluate(function ({ time, thresholdTime }) {
+        return new Promise(function (resolve) {
+          window.requestAnimationFrame(function (arg) {
+            if (isNaN(arg)) {
+              resolve('not a number');
+            } else if (arg > time + thresholdTime) {
+              resolve('exceeds goTo time');
+            } else if (arg >= time) {
+              resolve('matches');
+            }
+          });
+          timeweb.goTo(time);
         });
-        timeweb.goTo(time);
+      }, { time, thresholdTime })).to.equal('matches');
+    });
+    it('that is the same per batch of callbacks', async function () {
+      var time = 128;
+      var numCallbacks = 5;
+      expect(await page.evaluate(async function ({ time, numCallbacks }) {
+        var state = [];
+        var currState;
+        requestAnimationFrame(function init() {
+          currState = [];
+          state.push(currState);
+          requestAnimationFrame(init);
+        });
+        [... new Array(numCallbacks)].forEach(function () {
+          requestAnimationFrame(function run(arg) {
+            currState.push(arg);
+            requestAnimationFrame(run);
+          });
+        });
+        await timeweb.goTo(time);
+        return state;
+      }, { time, numCallbacks })).to.satisfy(function (state) {
+        return state.reduce(function (a, b) {
+          return a && b.reduce(function (p, c, i, arr) {
+            return p && (i < 1 ? true : c === arr[i - 1]);
+          });
+        }, true);
       });
-    }, { time, thresholdTime })).to.equal('matches');
+    });
   });
 
   describe('Simultaneous requests should run after a goTo', function () {
