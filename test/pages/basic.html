@@ -1,2 +1,8 @@
 <!DOCTYPE html>
-<script src="./timeweb.js"></script>
+<!--
+  For some configurations, namely Chromium on Windows,
+  loading files locally (via file://) doesn't seem to load
+  the external timeweb script. Instead we'll load it via
+  playwright's addInitScript or puppeteer's evaluateOnNewDocument.
+-->
+<!-- <script src="./timeweb.js"></script> -->
