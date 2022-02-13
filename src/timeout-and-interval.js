@@ -57,6 +57,8 @@ export function virtualSetTimeout(fn, timeout, ...args) {
     // If timeout is 0, there may be an infinite loop
     // Changing it to 1 shouldn't disrupt code, because
     // setTimeout doesn't usually execute code immediately
+    // Also note that virtual setInterval relies on this
+    // to prevent infinite loops with intervals of 0
     timeout = 1;
   }
   pendingBlocks.push({
