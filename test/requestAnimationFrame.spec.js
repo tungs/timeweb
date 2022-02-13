@@ -23,6 +23,25 @@ describe('Virtual requestAnimationFrame', function () {
     })).to.be.false;
   });
 
+  it('Multiple requests should run in the order they\'re added', async function () {
+    var numRequests = 5;
+    expect(await page.evaluate(async function ({ numRequests }) {
+      var state = [];
+      [...new Array(numRequests)].forEach(function (_, i) {
+        window.requestAnimationFrame(function () {
+          state.push(i);
+        });
+      });
+      await timeweb.goTo(10);
+      return state;
+    }, { numRequests })).to.satisfy(function (result) {
+      return result.length === numRequests &&
+        result.reduce(function (a, b, i, arr) {
+          return a && (i < 1 ? true : b > arr[i - 1]);
+        }, true);
+    });
+  });
+
   describe('passes a high resolution timestamp to its callback', function () {
     it('representing elapsed milliseconds since document creation', async function () {
       var time = 128;
