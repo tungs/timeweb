@@ -9,6 +9,7 @@ describe('Virtual performance.now', function () {
   it('should return 0 without a goTo', async function () {
     expect(await page.evaluate(function () {
       var time = performance.now();
+      // if `time` is a promise that resolves to 0, it shouldn't pass
       if (isNaN(time)) {
         return NaN;
       }
@@ -21,6 +22,7 @@ describe('Virtual performance.now', function () {
     expect(await page.evaluate(async function ({ goToTime }) {
       await timeweb.goTo(goToTime);
       var time = performance.now();
+      // if `time` is a promise that resolves to the correct time, it shouldn't pass
       if (isNaN(time)) {
         return NaN;
       }
