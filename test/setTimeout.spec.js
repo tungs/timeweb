@@ -156,33 +156,53 @@ describe('Virtual setTimeout', function () {
   });
 
   describe('Chained timeouts', function () {
-    beforeEach(async function () {
-      await page.evaluate(function () {
-        window.state = 0;
-        window.run = function () {
-          window.state++;
+    [
+      {
+        name: 'with a function',
+        init() {
+          window.state = 0;
+          window.run = function () {
+            window.state++;
+            setTimeout(window.run, 10);
+          };
           setTimeout(window.run, 10);
-        };
-        setTimeout(window.run, 10);
-      });
-    });
-    it('should be called with sequential goTos', async function () {
-      expect(await page.evaluate(async function () {
-        var i;
-        for (i = 0; i < 5; i++) {
-          await timeweb.goTo(i * 10 + 0.5);
-          if (window.state !== i) {
-            return 'Expected: ' + i + ' Got: ' + window.state;
-          }
         }
-        return window.state;
-      })).to.equal(4);
-    });
-    it('should be called with one goTo', async function () {
-      expect(await page.evaluate(async function () {
-        await timeweb.goTo(40.5);
-        return window.state;
-      })).to.equal(4);
+      },
+      {
+        name: 'with a string',
+        init() {
+          window.state = 0;
+          window.run = function () {
+            window.state++;
+            setTimeout('window.run()', 10);
+          };
+          setTimeout('window.run()', 10);
+        }
+      },
+    ].forEach(function ({ name, init }) {
+      describe(name, function () {
+        beforeEach(async function () {
+          await page.evaluate(init);
+        });
+        it('should be called with sequential goTos', async function () {
+          expect(await page.evaluate(async function () {
+            var i;
+            for (i = 0; i < 5; i++) {
+              await timeweb.goTo(i * 10 + 0.5);
+              if (window.state !== i) {
+                return 'Expected: ' + i + ' Got: ' + window.state;
+              }
+            }
+            return window.state;
+          })).to.equal(4);
+        });
+        it('should be called with one goTo', async function () {
+          expect(await page.evaluate(async function () {
+            await timeweb.goTo(40.5);
+            return window.state;
+          })).to.equal(4);
+        });
+      });
     });
   });
 });
