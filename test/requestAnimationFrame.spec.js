@@ -61,7 +61,7 @@ describe('Virtual requestAnimationFrame', function () {
         function run() {
           state++;
           requestAnimationFrame(run);
-        };
+        }
         requestAnimationFrame(run);
         var i, previousCount = state;
         for (i = 0; i < 5; i++) {
