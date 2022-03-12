@@ -28,8 +28,12 @@ function seekTo(ms, { detail } = {}) {
   return quasiAsyncThen(
     dispatch('preseek', { data: { seekTime: ms }, detail }),
     function () {
-      processUntilTime(ms);
-      return dispatch('postseek', { detail });
+      return quasiAsyncThen(
+        processUntilTime(ms),
+        function () {
+          return dispatch('postseek', { detail });
+        }
+      );
     }
   );
 }
@@ -38,8 +42,12 @@ function animateFrame(ms, { detail } = {}) {
   return quasiAsyncThen(
     dispatch('preanimate', { detail }),
     function () {
-      runAnimationFrames();
-      return dispatch('postanimate', { detail });
+      return quasiAsyncThen(
+        runAnimationFrames(),
+        function () {
+          return dispatch('postanimate', { detail });
+        }
+      );
     }
   );
 }

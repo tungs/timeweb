@@ -53,7 +53,6 @@ export function quasiAsyncWhileLoop(condition, body) {
   }
 }
 
-
 export function quasiAsyncIterateArray(array, body) {
   var i = 0;
   return quasiAsyncWhileLoop(
@@ -64,4 +63,35 @@ export function quasiAsyncIterateArray(array, body) {
       return body(array[i++]);
     }
   );
+}
+
+// Microtasks are blocks of code that runs after currently running code completes.
+// This can cause problems if timeweb is looping through a timeline, before
+// allowing for microtask code to run.
+// In some cases, there may be loops of microtasks (mostly promises)
+// where one or more microtasks will recursively add themselves to a loop.
+// In such cases, it's difficult to determine the end of a microtask loop,
+// since there doesn't seem to be a way to monitor the number of microtasks
+// in the queue. Instead, we'll take the approach of those issuing microtasks
+// to dispatch custom events before and after microtasks are intended to run.
+// This allows timeweb to exit and reenter loops to allow microtasks to run in
+// the intended order.
+
+export function makeMicrotaskListener(cb) {
+  // there should be a postmicrotask event for every premicrotask event
+  var listener = function () {
+    ret.shouldExit = true;
+    window.addEventListener('postmicrotasks', function () {
+      ret.shouldExit = false;
+      cb();
+    }, { once: true });
+  };
+  window.addEventListener('premicrotasks', listener);
+  var ret = {
+    shouldExit: false,
+    cleanUp: function () {
+      window.removeEventListener('premicrotasks', listener);
+    }
+  };
+  return ret;
 }

@@ -1,4 +1,6 @@
 import { getNewId, virtualNow, setVirtualTime, exportObject } from './shared.js';
+import { makeMicrotaskListener } from './utils.js';
+
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
 // window.requestAnimationFrame, window.setTimeout, and window.setInterval
@@ -27,13 +29,31 @@ export function processUntilTime(ms) {
   // We should be careful when iterating through pendingBlocks,
   // because other methods (i.e. sortPendingBlocks and virtualClearTimeout)
   // create new references to pendingBlocks
-  sortPendingBlocks();
-  while (pendingBlocks.length && pendingBlocks[0].time <= ms) {
-    processNextBlock();
+  var resolve;
+  function run() {
     sortPendingBlocks();
+    while (pendingBlocks.length && pendingBlocks[0].time <= ms) {
+      processNextBlock();
+      sortPendingBlocks();
+      if (listener.shouldExit) {
+        if (!resolve) {
+          return new Promise(function (res) {
+            resolve = res;
+          });
+        } else {
+          return;
+        }
+      }
+    }
+    // TODO: maybe wait a little while for possible promises to resolve?
+    listener.cleanUp();
+    setVirtualTime(ms);
+    if (resolve) {
+      resolve();
+    }
   }
-  // TODO: maybe wait a little while for possible promises to resolve?
-  setVirtualTime(ms);
+  var listener = makeMicrotaskListener(run);
+  return run();
 }
 
 // By assigning eval to a variable, it is invoked indirectly,
