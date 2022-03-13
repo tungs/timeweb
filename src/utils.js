@@ -81,16 +81,16 @@ export function makeMicrotaskListener(cb) {
   // there should be a postmicrotask event for every premicrotask event
   var listener = function () {
     ret.shouldExit = true;
-    window.addEventListener('postmicrotasks', function () {
+    self.addEventListener('postmicrotasks', function () {
       ret.shouldExit = false;
       cb();
     }, { once: true });
   };
-  window.addEventListener('premicrotasks', listener);
+  self.addEventListener('premicrotasks', listener);
   var ret = {
     shouldExit: false,
     cleanUp: function () {
-      window.removeEventListener('premicrotasks', listener);
+      self.removeEventListener('premicrotasks', listener);
     }
   };
   return ret;
