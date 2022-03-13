@@ -7,6 +7,7 @@ import { virtualSetTimeout, virtualSetInterval, virtualClearTimeout } from './ti
 import { virtualRequestAnimationFrame, virtualCancelAnimationFrame } from './animation-frames.js';
 import { virtualCreateElement, virtualCreateElementNS } from './create-element.js';
 import { VirtualDate } from './date.js';
+import { VirtualCustomEvent } from './custom-event.js';
 import { initializeMediaHandler } from './media.js';
 
 if (exportDocument) {
@@ -15,6 +16,7 @@ if (exportDocument) {
 
 // overwriting built-in functions...
 exportObject.Date = VirtualDate;
+exportObject.CustomEvent = VirtualCustomEvent;
 exportObject.performance.now = virtualNow;
 exportObject.setTimeout = virtualSetTimeout;
 exportObject.requestAnimationFrame = virtualRequestAnimationFrame;

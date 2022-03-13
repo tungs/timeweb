@@ -5,6 +5,7 @@
 import { exportObject, exportDocument } from './shared.js';
 import { markAsRealtime } from './element.js';
 export let realtimeDate = exportObject.Date;
+export let realtimeCustomEvent = exportObject.CustomEvent;
 export let realtimeSetTimeout = exportObject.setTimeout.bind(exportObject);
 export let realtimeRequestAnimationFrame = exportObject.requestAnimationFrame.bind(exportObject);
 export let realtimeSetInterval = exportObject.setInterval.bind(exportObject);
@@ -37,6 +38,7 @@ export let realtimeCreateElementNS = !exportDocument ? undefined : function () {
 
 export let realtime = {
   Date: realtimeDate,
+  CustomEvent: realtimeCustomEvent,
   setTimeout: realtimeSetTimeout,
   clearTimeout: realtimeClearTimeout,
   requestAnimationFrame: realtimeRequestAnimationFrame,
