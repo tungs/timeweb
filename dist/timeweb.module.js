@@ -766,7 +766,7 @@ if (exportDocument) {
   exportDocument.createElementNS = virtualCreateElementNS;
 }
 
-var version = "0.3.1";
+var version = "0.3.2-prerelease";
 
 function goTo(ms, config = {}) {
   return Promise.resolve(quasiAsyncGoTo(ms, config));
