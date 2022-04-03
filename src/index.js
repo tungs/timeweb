@@ -8,6 +8,7 @@ import { subscribe, unsubscribe } from './library-events.js';
 export { realtime } from './realtime.js';
 export { version } from '../package.json';
 export { goTo } from './go-to.js';
+export { startRealtimeSimulation, stopRealtimeSimulation } from './simulation.js';
 
 export const on = subscribe;
 export const off = unsubscribe;

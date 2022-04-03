@@ -5,20 +5,19 @@ import { goTo } from './go-to.js';
 var simulationAnimationId;
 export function startRealtimeSimulation({ fixedFrameRate } = {}) {
   realtimeCancelAnimationFrame(simulationAnimationId);
-  var simulationStartTime = realtimePerformance.now();
   var simulationTime = virtualNow();
+  var simulationStartTime = realtimePerformance.now() - simulationTime;
   function simulate() {
-    realtimeRequestAnimationFrame(simulate);
-    var frameDelta;
     if (fixedFrameRate) {
-      frameDelta = fixedFrameRate;
+      simulationTime += fixedFrameRate;
     } else {
-      frameDelta = realtimePerformance.now() - simulationStartTime();
+      simulationTime = realtimePerformance.now() - simulationStartTime;
     }
-    simulationTime += frameDelta;
-    goTo(simulationTime);
+    goTo(simulationTime).then(function () {
+      simulationAnimationId = realtimeRequestAnimationFrame(simulate);
+    });
   }
-  realtimeRequestAnimationFrame(simulate);
+  simulationAnimationId = realtimeRequestAnimationFrame(simulate);
 }
 
 export function stopRealtimeSimulation() {
