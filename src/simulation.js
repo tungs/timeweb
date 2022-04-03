@@ -3,7 +3,7 @@ import { virtualNow } from './shared.js';
 import { goTo } from './go-to.js';
 
 var simulationAnimationId;
-export function startRealtimeSimulation({ fixedFrameRate } = {}) {
+export function startRealtimeSimulation({ fixedFrameRate, requestNextFrameImmediately } = {}) {
   realtimeCancelAnimationFrame(simulationAnimationId);
   var simulationTime = virtualNow();
   var simulationStartTime = realtimePerformance.now() - simulationTime;
@@ -13,9 +13,14 @@ export function startRealtimeSimulation({ fixedFrameRate } = {}) {
     } else {
       simulationTime = realtimePerformance.now() - simulationStartTime;
     }
-    goTo(simulationTime).then(function () {
+    if (requestNextFrameImmediately) {
       simulationAnimationId = realtimeRequestAnimationFrame(simulate);
-    });
+      goTo(simulationTime);
+    } else {
+      goTo(simulationTime).then(function () {
+        simulationAnimationId = realtimeRequestAnimationFrame(simulate);
+      });
+    }
   }
   simulationAnimationId = realtimeRequestAnimationFrame(simulate);
 }
