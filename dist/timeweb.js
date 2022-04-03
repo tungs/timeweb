@@ -78,6 +78,7 @@
 
   // Note that since realtime depends on assigning from exportObject and exportDocument
   let realtimeDate = exportObject.Date;
+  let realtimeCustomEvent = exportObject.CustomEvent;
   let realtimeSetTimeout = exportObject.setTimeout.bind(exportObject);
   let realtimeRequestAnimationFrame = exportObject.requestAnimationFrame.bind(exportObject);
   let realtimeSetInterval = exportObject.setInterval.bind(exportObject);
@@ -110,6 +111,7 @@
 
   let realtime = {
     Date: realtimeDate,
+    CustomEvent: realtimeCustomEvent,
     setTimeout: realtimeSetTimeout,
     clearTimeout: realtimeClearTimeout,
     requestAnimationFrame: realtimeRequestAnimationFrame,
@@ -120,6 +122,90 @@
     createElement: realtimeCreateElement,
     createElementNS: realtimeCreateElementNS
   };
+
+  function isThenable(o) {
+    return o && (o.then instanceof Function);
+  }
+
+  /* Quasi-Async Functions */
+  // These functions are asynchronous only if necessary
+  // They might not be necessary if awaiting resolved promises
+  // immediately continues the function, though according to
+  // https://stackoverflow.com/q/64367903 awaiting resolved promises
+  // isn't necessarily synchronous.
+  // These Quasi-Async functions are an alternative to the async model.
+  // Promises can be returned, but only if necessary (maybe-promise objects)
+  // They can be chained with themselves and each other, where they take
+  // arguments that are maybe-promises and functions that can return maybe-promises.
+  // An additional potential optimization could be
+  // to use a promise that calls `then` immediately after resolving
+  // These quasi-async functions are implemented instead of async/await because:
+  // 1. Some functions need to run immediately afterwards
+  //   (like copying WebGL canvas data after painting)
+  // 2. Potential performance (though this should be benchmarked, since this
+  //   impementation adds overhead with additional functions)
+  // 3. (To a much lesser extent) Compatibility for browsers without async/await
+  function quasiAsyncThen(a, fnB) {
+    if (isThenable(a)) {
+      return a.then(fnB);
+    } else {
+      return fnB();
+    }
+  }
+
+  function quasiAsyncWhileLoop(condition, body) {
+    while (condition()) {
+      let r = body();
+      if (isThenable(r)) {
+        return r.then(function () {
+          quasiAsyncWhileLoop(condition, body);
+        });
+      }
+    }
+  }
+
+  function quasiAsyncIterateArray(array, body) {
+    var i = 0;
+    return quasiAsyncWhileLoop(
+      function () {
+        return i < array.length;
+      },
+      function () {
+        return body(array[i++]);
+      }
+    );
+  }
+
+  // Microtasks are blocks of code that runs after currently running code completes.
+  // This can cause problems if timeweb is looping through a timeline, before
+  // allowing for microtask code to run.
+  // In some cases, there may be loops of microtasks (mostly promises)
+  // where one or more microtasks will recursively add themselves to a loop.
+  // In such cases, it's difficult to determine the end of a microtask loop,
+  // since there doesn't seem to be a way to monitor the number of microtasks
+  // in the queue. Instead, we'll take the approach of those issuing microtasks
+  // to dispatch custom events before and after microtasks are intended to run.
+  // This allows timeweb to exit and reenter loops to allow microtasks to run in
+  // the intended order.
+
+  function makeMicrotaskListener(cb) {
+    // there should be a postmicrotask event for every premicrotask event
+    var listener = function () {
+      ret.shouldExit = true;
+      self.addEventListener('postmicrotasks', function () {
+        ret.shouldExit = false;
+        cb();
+      }, { once: true });
+    };
+    self.addEventListener('premicrotasks', listener);
+    var ret = {
+      shouldExit: false,
+      cleanUp: function () {
+        self.removeEventListener('premicrotasks', listener);
+      }
+    };
+    return ret;
+  }
 
   // a block is a segment of blocking code, wrapped in a function
   // to be run at a certain virtual time. They're created by
@@ -149,13 +235,31 @@
     // We should be careful when iterating through pendingBlocks,
     // because other methods (i.e. sortPendingBlocks and virtualClearTimeout)
     // create new references to pendingBlocks
-    sortPendingBlocks();
-    while (pendingBlocks.length && pendingBlocks[0].time <= ms) {
-      processNextBlock();
+    var resolve;
+    function run() {
       sortPendingBlocks();
+      while (pendingBlocks.length && pendingBlocks[0].time <= ms) {
+        processNextBlock();
+        sortPendingBlocks();
+        if (listener.shouldExit) {
+          if (!resolve) {
+            return new Promise(function (res) {
+              resolve = res;
+            });
+          } else {
+            return;
+          }
+        }
+      }
+      // TODO: maybe wait a little while for possible promises to resolve?
+      listener.cleanUp();
+      setVirtualTime(ms);
+      if (resolve) {
+        resolve();
+      }
     }
-    // TODO: maybe wait a little while for possible promises to resolve?
-    setVirtualTime(ms);
+    var listener = makeMicrotaskListener(run);
+    return run();
   }
 
   // By assigning eval to a variable, it is invoked indirectly,
@@ -256,6 +360,7 @@
       return block.id !== id;
     });
   }
+
   function runAnimationFrames() {
     // since requestAnimationFrame usually adds new frames,
     // we want to these new ones to be separated from the
@@ -264,14 +369,31 @@
     animationFrameBlocks = [];
     // We should be careful when iterating through currentAnimationFrameBlocks,
     // because virtualCancelAnimationFrame creates a new reference to currentAnimationFrameBlocks
-    var block;
-    while (currentAnimationFrameBlocks.length) {
-      block = currentAnimationFrameBlocks.shift();
-      // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
-      // the passed argument to the callback should be the starting time of the
-      // chunk of requestAnimationFrame callbacks that are called for that particular frame
-      block.fn(virtualNow());
+    var resolve;
+    function run() {
+      while (currentAnimationFrameBlocks.length) {
+        let block = currentAnimationFrameBlocks.shift();
+        // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
+        // the passed argument to the callback should be the starting time of the
+        // chunk of requestAnimationFrame callbacks that are called for that particular frame
+        block.fn(virtualNow());
+        if (listener.shouldExit) {
+          if (resolve) {
+            return;
+          } else {
+            return new Promise(function (res) {
+              resolve = res;
+            });
+          }
+        }
+      }
+      listener.cleanUp();
+      if (resolve) {
+        resolve();
+      }
     }
+    var listener = makeMicrotaskListener(run);
+    return run();
   }
 
   var elementCreateListeners = [];
@@ -322,59 +444,13 @@
     return virtualNow() + startTime;
   };
 
-  function isThenable(o) {
-    return o && (o.then instanceof Function);
-  }
-
-  /* Quasi-Async Functions */
-  // These functions are asynchronous only if necessary
-  // They might not be necessary if awaiting resolved promises
-  // immediately continues the function, though according to
-  // https://stackoverflow.com/q/64367903 awaiting resolved promises
-  // isn't necessarily synchronous.
-  // These Quasi-Async functions are an alternative to the async model.
-  // Promises can be returned, but only if necessary (maybe-promise objects)
-  // They can be chained with themselves and each other, where they take
-  // arguments that are maybe-promises and functions that can return maybe-promises.
-  // An additional potential optimization could be
-  // to use a promise that calls `then` immediately after resolving
-  // These quasi-async functions are implemented instead of async/await because:
-  // 1. Some functions need to run immediately afterwards
-  //   (like copying WebGL canvas data after painting)
-  // 2. Potential performance (though this should be benchmarked, since this
-  //   impementation adds overhead with additional functions)
-  // 3. (To a much lesser extent) Compatibility for browsers without async/await
-  function quasiAsyncThen(a, fnB) {
-    if (isThenable(a)) {
-      return a.then(fnB);
-    } else {
-      return fnB();
+  var oldCustomEvent = CustomEvent;
+  var VirtualCustomEvent = class CustomEvent extends oldCustomEvent {
+    constructor() {
+      super(...arguments);
+      Object.defineProperty(this, 'timeStamp', { value: virtualNow() });
     }
-  }
-
-  function quasiAsyncWhileLoop(condition, body) {
-    while (condition()) {
-      let r = body();
-      if (isThenable(r)) {
-        return r.then(function () {
-          quasiAsyncWhileLoop(condition, body);
-        });
-      }
-    }
-  }
-
-
-  function quasiAsyncIterateArray(array, body) {
-    var i = 0;
-    return quasiAsyncWhileLoop(
-      function () {
-        return i < array.length;
-      },
-      function () {
-        return body(array[i++]);
-      }
-    );
-  }
+  };
 
   var eventListeners = {
     preanimate: [],
@@ -683,6 +759,7 @@
 
   // overwriting built-in functions...
   exportObject.Date = VirtualDate;
+  exportObject.CustomEvent = VirtualCustomEvent;
   exportObject.performance.now = virtualNow;
   exportObject.setTimeout = virtualSetTimeout;
   exportObject.requestAnimationFrame = virtualRequestAnimationFrame;
@@ -696,8 +773,6 @@
   }
 
   var version = "0.3.1-prerelease";
-
-  // exports to the `timeweb` module/object
 
   function goTo(ms, config = {}) {
     return Promise.resolve(quasiAsyncGoTo(ms, config));
@@ -718,8 +793,12 @@
     return quasiAsyncThen(
       dispatch('preseek', { data: { seekTime: ms }, detail }),
       function () {
-        processUntilTime(ms);
-        return dispatch('postseek', { detail });
+        return quasiAsyncThen(
+          processUntilTime(ms),
+          function () {
+            return dispatch('postseek', { detail });
+          }
+        );
       }
     );
   }
@@ -728,11 +807,44 @@
     return quasiAsyncThen(
       dispatch('preanimate', { detail }),
       function () {
-        runAnimationFrames();
-        return dispatch('postanimate', { detail });
+        return quasiAsyncThen(
+          runAnimationFrames(),
+          function () {
+            return dispatch('postanimate', { detail });
+          }
+        );
       }
     );
   }
+
+  var simulationAnimationId;
+  function startRealtimeSimulation({ fixedFrameDuration, requestNextFrameImmediately } = {}) {
+    stopRealtimeSimulation();
+    var simulationTime = virtualNow();
+    var simulationStartTime = realtimePerformance.now() - simulationTime;
+    function simulate() {
+      if (fixedFrameDuration) {
+        simulationTime += fixedFrameDuration;
+      } else {
+        simulationTime = realtimePerformance.now() - simulationStartTime;
+      }
+      if (requestNextFrameImmediately) {
+        simulationAnimationId = realtimeRequestAnimationFrame(simulate);
+        goTo(simulationTime);
+      } else {
+        goTo(simulationTime).then(function () {
+          simulationAnimationId = realtimeRequestAnimationFrame(simulate);
+        });
+      }
+    }
+    simulationAnimationId = realtimeRequestAnimationFrame(simulate);
+  }
+
+  function stopRealtimeSimulation() {
+    realtimeCancelAnimationFrame(simulationAnimationId);
+  }
+
+  // exports to the `timeweb` module/object
 
   const on = subscribe;
   const off = unsubscribe;
@@ -743,6 +855,8 @@
   exports.processUntilTime = processUntilTime;
   exports.realtime = realtime;
   exports.runAnimationFrames = runAnimationFrames;
+  exports.startRealtimeSimulation = startRealtimeSimulation;
+  exports.stopRealtimeSimulation = stopRealtimeSimulation;
   exports.version = version;
 
   Object.defineProperty(exports, '__esModule', { value: true });
