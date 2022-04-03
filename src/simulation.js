@@ -4,7 +4,7 @@ import { goTo } from './go-to.js';
 
 var simulationAnimationId;
 export function startRealtimeSimulation({ fixedFrameRate, requestNextFrameImmediately } = {}) {
-  realtimeCancelAnimationFrame(simulationAnimationId);
+  stopRealtimeSimulation();
   var simulationTime = virtualNow();
   var simulationStartTime = realtimePerformance.now() - simulationTime;
   function simulate() {
