@@ -1,6 +1,6 @@
 import { realtimeCancelAnimationFrame, realtimeRequestAnimationFrame, realtimePerformance } from './realtime.js';
 import { virtualNow } from './shared.js';
-import { goTo } from './index.js';
+import { goTo } from './go-to.js';
 
 var simulationAnimationId;
 export function startRealtimeSimulation({ fixedFrameRate } = {}) {
