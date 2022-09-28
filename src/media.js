@@ -6,6 +6,53 @@ import { subscribe } from './library-events.js';
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
 var currentTimePropertyDescriptor;
+var srcPropertyDescriptor;
+
+var shouldReplaceMediaWithBlobs = false;
+function replaceMediaWithBlob(media, src) {
+  var node = media.node;
+  src = src || node.src;
+  if (!src) {
+    return;
+  }
+  if (src.startsWith('blob:')) {
+    node._timeweb_srcIsBlob = true;
+    return;
+  }
+  if (media.pendingReplaceWithBlob) {
+    return media.pendingReplaceWithBlob;
+  }
+  media.pendingReplaceWithBlob = fetch(src).then(function (res) {
+    return res.blob();
+  }).then(function (blob) {
+    return new Promise(function (resolve) {
+      node.addEventListener('canplaythrough', resolve, { once: true });
+      // probably can just use `node.src = URL.createObjectURL(blob)`
+      // but if the functions change, this might create an infinite loop
+      media.setSrc(URL.createObjectURL(blob));
+      node._timeweb_srcIsBlob = true;
+    });
+  }, function (err) {
+    if (err instanceof TypeError) {
+      // eslint-disable-next-line no-console
+      console.warn('Could not fetch ' + src + '. Is cross-origin downloading enabled on the server?');
+    } else {
+      media.pendingReplaceWithBlob = null;
+      throw err;
+    }
+  }).then(function () {
+    media.pendingReplaceWithBlob = null;
+  });
+  return media.pendingReplaceWithBlob;
+}
+
+export function replaceMediaWithBlobs() {
+  shouldReplaceMediaWithBlobs = true;
+  return Promise.all(mediaList.map(function (media) {
+    replaceMediaWithBlob(media);
+  }));
+}
+
 export function addMediaNode(node) {
   if (!shouldBeProcessed(node)) {
     return;
@@ -21,6 +68,9 @@ export function addMediaNode(node) {
   node._timeweb_oldPause = node.pause;
   var media = {
     node: node,
+    setSrc: function (src) {
+      node._timeweb_oldSrc = src;
+    },
     goToTime: function () {
       var elapsedTime = virtualNow() - lastUpdated;
       var p;
@@ -135,6 +185,21 @@ export function addMediaNode(node) {
       e.stopImmediatePropagation();
     }
   });
+  Object.defineProperty(node, '_timeweb_oldSrc', srcPropertyDescriptor);
+  Object.defineProperty(node, 'src', {
+    get: function () {
+      return node._timeweb_oldSrc;
+    },
+    set: function (src) {
+      node._timeweb_oldSrc = src;
+      if (shouldReplaceMediaWithBlobs) {
+        replaceMediaWithBlob(media, src);
+      }
+    }
+  });
+  if (shouldReplaceMediaWithBlobs) {
+    replaceMediaWithBlob(media);
+  }
   if (!paused && !ended) {
     // a 'pause' event may have been unintentionally dispatched
     // before with `node._timeweb_oldPause()`
@@ -203,12 +268,24 @@ function mediaCreateListener(element, name) {
   }
 }
 
+function pendingReplaceWithBlob(node) {
+  return node.pendingReplaceWithBlob;
+}
 
 export function initializeMediaHandler() {
   currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
+  srcPropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
   observeMedia();
   addElementCreateListener(mediaCreateListener);
   addElementNSCreateListener(mediaCreateListener);
+  // may also want to make this a listener for preanimate
+  // but currently only seeking changes time
+  subscribe('preseek', function () {
+    let replacedMedia = mediaList.filter(pendingReplaceWithBlob);
+    if (replacedMedia.length) {
+      return Promise.all(replacedMedia.map(pendingReplaceWithBlob));
+    }
+  }, { wait: true });
   subscribe('postseek', function () {
     let activeMedia = mediaList.filter(function (node) {
       return !node.paused && !node.ended;
