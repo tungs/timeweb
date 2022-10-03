@@ -75,6 +75,10 @@ export function addMediaNode(node) {
       var elapsedTime = virtualNow() - lastUpdated;
       var p;
       var playbackRate;
+      if (elapsedTime === 0) {
+        // sometimes a seeked event is not dispatched the currentTime is the same
+        return;
+      }
       if (!paused) {
         if (precisionTime / 1000 < node.duration || node.loop) {
           ended = false;
