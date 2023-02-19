@@ -1,7 +1,7 @@
-import { virtualNow, exportDocument } from './shared.js';
-import { addElementCreateListener, addElementNSCreateListener } from './create-element.js';
+import { virtualNow } from './shared.js';
 import { virtualSetTimeout } from './timeout-and-interval.js';
 import { markAsProcessed, shouldBeProcessed } from './element.js';
+import { addDOMHandler } from './dom.js';
 import { subscribe } from './library-events.js';
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
@@ -222,56 +222,6 @@ export function removeMediaNode(node) {
   });
 }
 
-// When identifying media nodes, using a MutationObserver covers
-// most use cases, since it directly observes the DOM
-// The cases it doesn't cover is when elements are not added to DOM
-// or significant operations occur on the elements before they are added,
-// in which order matters (e.g. `addEventListener`).
-// For many of those remaining cases, we'll also overwrite
-// document.createElement and document.createElementNS
-// There still remains cases where elements are created via other means
-// (e.g. through `div.innerHTML`), and then operations are done on them
-// before adding them to DOM
-
-// mutationHandler covers elements when they're added to DOM
-function mutationHandler(mutationsList) {
-  for (let mutation of mutationsList) {
-    if (mutation.type === 'childList') {
-      for (let node of mutation.addedNodes) {
-        if (node.nodeName === 'VIDEO') {
-          addMediaNode(node);
-        }
-      }
-      for (let node of mutation.removedNodes) {
-        if (node.nodeName === 'VIDEO') {
-          removeMediaNode(node);
-        }
-      }
-    }
-  }
-}
-
-export function observeMedia() {
-  var mediaObserver = new MutationObserver(mutationHandler);
-  mediaObserver.observe(exportDocument, {
-    attributes: false,
-    childList: true,
-    characterData: false,
-    subtree: true
-  });
-}
-// Plugging into createElement and createElementNS covers
-// most cases where elements are created programatically.
-// mediaObserver will eventually cover them,
-// but before then event listeners may be added,
-// before e.stopImmediatePropagation can be called
-function mediaCreateListener(element, name) {
-  var type = name.toLowerCase();
-  if (type === 'video' || type.endsWith(':video')) {
-    addMediaNode(element);
-  }
-}
-
 function pendingReplaceWithBlob(node) {
   return node.pendingReplaceWithBlob;
 }
@@ -279,9 +229,24 @@ function pendingReplaceWithBlob(node) {
 export function initializeMediaHandler() {
   currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
   srcPropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
-  observeMedia();
-  addElementCreateListener(mediaCreateListener);
-  addElementNSCreateListener(mediaCreateListener);
+  addDOMHandler({
+    domAdd: function (node) {
+      if (node.nodeName === 'VIDEO') {
+        addMediaNode(node);
+      }
+    },
+    domRemove: function (node) {
+      if (node.nodeName === 'VIDEO') {
+        removeMediaNode(node);
+      }
+    },
+    createElement: function (element, name) {
+      var type = name.toLowerCase();
+      if (type === 'video' || type.endsWith(':video')) {
+        addMediaNode(element);
+      }
+    }
+  });
   // may also want to make this a listener for preanimate
   // but currently only seeking changes time
   subscribe('preseek', function () {
