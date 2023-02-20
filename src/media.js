@@ -1,6 +1,6 @@
 import { virtualNow } from './shared.js';
 import { virtualSetTimeout } from './timeout-and-interval.js';
-import { markAsProcessed, shouldBeProcessed } from './element.js';
+import { markAsProcessed, shouldBeProcessed } from './markings.js';
 import { addDOMHandler } from './dom.js';
 import { subscribe } from './library-events.js';
 const timewebEventDetail = 'timeweb generated';

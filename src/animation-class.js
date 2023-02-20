@@ -1,6 +1,6 @@
 import { virtualNow } from './shared.js';
 import { getPropertyDescriptors } from './utils.js';
-import { markAsProcessed, shouldBeProcessed } from './element.js';
+import { markAsProcessed, shouldBeProcessed } from './markings.js';
 import { subscribe } from './library-events.js';
 // This file overwrites instances of the Animation Class
 // It can cover CSS Transitions, CSS Animations, and the Web-Animations API
@@ -13,8 +13,6 @@ export function processAnimation(animation) {
   }
 
   if (!shouldBeProcessed(animation)) {
-    // TODO: rename shouldBeProcessed/markAsProcessed from element file
-    // to generic objects
     return;
   }
   var ended = false;

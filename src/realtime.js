@@ -3,7 +3,7 @@
 // are overwritten
 
 import { exportObject, exportDocument } from './shared.js';
-import { markAsRealtime } from './element.js';
+import { markAsRealtime } from './markings.js';
 export let realtimeDate = exportObject.Date;
 export let realtimeCustomEvent = exportObject.CustomEvent;
 export let realtimeSetTimeout = exportObject.setTimeout.bind(exportObject);
