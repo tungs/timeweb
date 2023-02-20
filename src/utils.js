@@ -95,3 +95,11 @@ export function makeMicrotaskListener(cb) {
   };
   return ret;
 }
+
+export function getPropertyDescriptors(obj, properties) {
+  var descriptions = {};
+  properties.forEach(function (property) {
+    descriptions[property] = Object.getOwnPropertyDescriptor(obj, property);
+  });
+  return descriptions;
+}

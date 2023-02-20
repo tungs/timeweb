@@ -11,10 +11,12 @@ import { VirtualCustomEvent } from './custom-event.js';
 import { initializeMediaHandler } from './media.js';
 import { initializeAnimatedSVGHandler } from './animated-svg.js';
 import { initializeDOMHandler } from './dom.js';
+import { initializeCSSHandler } from './css-transitions-and-animations.js';
 
 if (exportDocument) {
   initializeMediaHandler();
   initializeAnimatedSVGHandler();
+  initializeCSSHandler();
   initializeDOMHandler();
 }
 
