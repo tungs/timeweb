@@ -230,17 +230,17 @@ export function initializeMediaHandler() {
   currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
   srcPropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
   addDOMHandler({
-    domAdd: function (node) {
+    domAdded: function (node) {
       if (node.nodeName === 'VIDEO') {
         addMediaNode(node);
       }
     },
-    domRemove: function (node) {
+    domRemoved: function (node) {
       if (node.nodeName === 'VIDEO') {
         removeMediaNode(node);
       }
     },
-    createElement: function (element, name) {
+    elementCreated: function (element, name) {
       var type = name.toLowerCase();
       if (type === 'video' || type.endsWith(':video')) {
         addMediaNode(element);

@@ -58,17 +58,17 @@ export function removeAnimatedSVGNode(node) {
 
 export function initializeAnimatedSVGHandler() {
   addDOMHandler({
-    domAdd: function (node) {
+    domAdded: function (node) {
       if (node.nodeName.toLowerCase() === 'svg') {
         addAnimatedSVGNode(node);
       }
     },
-    domRemove: function (node) {
+    domRemoved: function (node) {
       if (node.nodeName.toLowerCase() === 'svg') {
         removeAnimatedSVGNode(node);
       }
     },
-    createElement: function (element, name) {
+    elementCreated: function (element, name) {
       if (name.toLowerCase() === 'svg') {
         addAnimatedSVGNode(element);
       }

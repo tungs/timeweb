@@ -19,15 +19,15 @@ function mutationHandler(mutationsList) {
     if (mutation.type === 'childList') {
       for (let node of mutation.addedNodes) {
         domHandlers.forEach(function (handler) {
-          if (handler.domAdd) {
-            handler.domAdd(node);
+          if (handler.domAdded) {
+            handler.domAdded(node);
           }
         });
       }
       for (let node of mutation.removedNodes) {
         domHandlers.forEach(function (handler) {
-          if (handler.domRemove) {
-            handler.domRemove(node);
+          if (handler.domRemoved) {
+            handler.domRemoved(node);
           }
         });
       }
@@ -52,15 +52,15 @@ export function addDOMHandler(handler) {
   // domObserver will eventually cover them,
   // but before then event listeners may be added,
   // before e.stopImmediatePropagation can be called
-  if (handler.createElement) {
-    addElementCreateListener(handler.createElement);
-    addElementNSCreateListener(handler.createElement);
+  if (handler.elementCreated) {
+    addElementCreateListener(handler.elementCreated);
+    addElementNSCreateListener(handler.elementCreated);
   }
-  if (handler.createHTMLElement) {
-    addElementCreateListener(handler.createHTMLElement);
+  if (handler.htmlElementCreated) {
+    addElementCreateListener(handler.htmlElementCreated);
   }
-  if (handler.createNSElement) {
-    addElementNSCreateListener(handler.createNSElement);
+  if (handler.nsElementCreated) {
+    addElementNSCreateListener(handler.nsElementCreated);
   }
 }
 
