@@ -36,8 +36,8 @@ function mutationHandler(mutationsList) {
 }
 
 export function observeDOM() {
-  var mediaObserver = new MutationObserver(mutationHandler);
-  mediaObserver.observe(exportDocument, {
+  var domObserver = new MutationObserver(mutationHandler);
+  domObserver.observe(exportDocument, {
     attributes: false,
     childList: true,
     characterData: false,
@@ -49,7 +49,7 @@ export function addDOMHandler(handler) {
   domHandlers.push(handler);
   // Plugging into createElement and createElementNS covers
   // most cases where elements are created programatically.
-  // mediaObserver will eventually cover them,
+  // domObserver will eventually cover them,
   // but before then event listeners may be added,
   // before e.stopImmediatePropagation can be called
   if (handler.createElement) {

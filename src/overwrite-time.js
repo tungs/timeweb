@@ -9,10 +9,12 @@ import { virtualCreateElement, virtualCreateElementNS } from './create-element.j
 import { VirtualDate } from './date.js';
 import { VirtualCustomEvent } from './custom-event.js';
 import { initializeMediaHandler } from './media.js';
+import { initializeAnimatedSVGHandler } from './animated-svg.js';
 import { initializeDOMHandler } from './dom.js';
 
 if (exportDocument) {
   initializeMediaHandler();
+  initializeAnimatedSVGHandler();
   initializeDOMHandler();
 }
 
