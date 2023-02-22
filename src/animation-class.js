@@ -1,12 +1,17 @@
-import { virtualNow } from './shared.js';
+import { virtualNow, exportDocument } from './shared.js';
 import { getPropertyDescriptors } from './utils.js';
 import { markAsProcessed, shouldBeProcessed } from './markings.js';
 import { subscribe } from './library-events.js';
+import { virtualSetTimeout, virtualClearTimeout } from './timeout-and-interval.js';
+
 // This file overwrites instances of the Animation Class
 // It can cover CSS Transitions, CSS Animations, and the Web-Animations API
 // see https://developer.mozilla.org/en_US/docs/Web/API/Animation
 
 var descriptors, animations = [];
+function getAnimationDuration(animation) {
+  return animation.effect.getComputedTiming().endTime;
+}
 export function processAnimation(animation) {
   if (!animationsInitialized) {
     initializeAnimationClassHandler();
@@ -44,10 +49,54 @@ export function processAnimation(animation) {
     }
   });
 
+  function endAnimation() {
+    if (ended) {
+      return;
+    }
+    if (playbackRate < 0) {
+      currentTime = 0;
+    } else {
+      currentTime = getAnimationDuration(animation);
+    }
+    animation._timeweb_oldCurrentTime = currentTime;
+    lastUpdated = virtualNow();
+    ended = true;
+    // for now we'll just restore the playback rate
+    // and let the browser dispatch events
+    animation._timeweb_oldPlaybackRate = playbackRate;
+  }
+  var anticipatedEndingTimeout;
+  // should call anticipateEnding() whenever the duration/playbackRate changes
+  // TODO: for anything that changes duration/playbackRate call anticipateEnding()
+  function anticipateEnding() {
+    if (ended || playbackRate === 0 || isNaN(currentTime)) {
+      return;
+    }
+    virtualClearTimeout(anticipatedEndingTimeout);
+    var target = playbackRate < 0 ? 0 : getAnimationDuration(animation);
+    var futureTime = (target - currentTime) / playbackRate;
+    if (futureTime < 0) {
+      endAnimation();
+      return;
+    }
+    anticipatedEndingTimeout = virtualSetTimeout(function () {
+      if (ended || animation.playState === 'idle') {
+        return;
+      }
+      if (
+        (playbackRate < 0 && currentTime <= 0) ||
+        (playbackRate > 0 && currentTime >= getAnimationDuration(animation))
+      ) {
+        endAnimation();
+      } else {
+        anticipateEnding();
+      }
+    }, futureTime);
+  }
   function goToTime() {
-    var elapsedTime = virtualNow() - lastUpdated;
-    var timing = animation.effect.getComputedTiming();
-    var duration = timing.endTime;
+    var virtualTime = virtualNow();
+    var elapsedTime = virtualTime - lastUpdated;
+    var duration = getAnimationDuration(animation);
     if (elapsedTime === 0) {
       return;
     }
@@ -57,26 +106,25 @@ export function processAnimation(animation) {
       }
       if (!ended) {
         currentTime += elapsedTime * playbackRate;
-        if (playbackRate > 0 && currentTime > duration) {
-          currentTime = duration;
-          ended = true;
-          // for now we'll just restore the playback rate
-          // and let the browser dispatch events
-          animation._timeweb_oldPlaybackRate = playbackRate;
+        if (
+          (playbackRate > 0 && currentTime > duration) ||
+          (playbackRate < 0 && currentTime < 0)
+        ) {
+          endAnimation();
+        } else {
+          animation._timeweb_oldCurrentTime = currentTime;
         }
-        if (playbackRate < 0 && currentTime < 0) {
-          currentTime = 0;
-          ended = true;
-          // for now we'll just restore the playback rate
-          // and let the browser dispatch events
-          animation._timeweb_oldPlaybackRate = playbackRate;
-        }
-        animation._timeweb_oldCurrentTime = currentTime;
       }
     }
-    lastUpdated += elapsedTime;
+    lastUpdated = virtualTime;
   }
-  animation.addEventListener('cancel', () => removeAnimation(animation));
+  function remove() {
+    virtualClearTimeout(anticipatedEndingTimeout);
+    removeAnimation(animation);
+  }
+  animation.addEventListener('cancel', remove);
+  animation.addEventListener('finish', remove);
+  anticipateEnding();
   markAsProcessed(animation);
   animations.push({
     goToTime,
@@ -88,6 +136,27 @@ export function removeAnimation(animation) {
   animations = animations.filter(a => a.animation !== animation);
 }
 
+export function getDocumentAnimations() {
+  return getAnimations(exportDocument);
+}
+
+export function getAnimations(obj) {
+  // note that obj can be an element or a document
+  if (obj.getAnimations) {
+    return obj.getAnimations();
+  }
+  return [];
+}
+
+export function processDocumentAnimations() {
+  getDocumentAnimations().forEach(processAnimation);
+}
+
+export function processElementAnimations(element) {
+  getAnimations(element).forEach(processAnimation);
+}
+
+
 var animationsInitialized = false;
 export function initializeAnimationClassHandler() {
   if (animationsInitialized) {
@@ -97,9 +166,12 @@ export function initializeAnimationClassHandler() {
     'currentTime',
     'playbackRate'
   ]);
+  subscribe('preseek', function () {
+    processDocumentAnimations();
+  });
   subscribe('postseek', function () {
     return Promise.all(animations.map(function (animation) {
-      animation.goToTime();
+      return animation.goToTime();
     }));
   }, { wait: true });
   animationsInitialized = true;
