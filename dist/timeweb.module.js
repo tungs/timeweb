@@ -201,6 +201,14 @@ function makeMicrotaskListener(cb) {
   return ret;
 }
 
+function getPropertyDescriptors(obj, properties) {
+  var descriptions = {};
+  properties.forEach(function (property) {
+    descriptions[property] = Object.getOwnPropertyDescriptor(obj, property);
+  });
+  return descriptions;
+}
+
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
 // window.requestAnimationFrame, window.setTimeout, and window.setInterval
@@ -446,6 +454,73 @@ var VirtualCustomEvent = class CustomEvent extends oldCustomEvent {
   }
 };
 
+var domHandlers = [];
+// When identifying media nodes, using a MutationObserver covers
+// most use cases, since it directly observes the DOM
+// The cases it doesn't cover is when elements are not added to DOM
+// or significant operations occur on the elements before they are added,
+// in which order matters (e.g. `addEventListener`).
+// For many of those remaining cases, we'll also overwrite
+// document.createElement and document.createElementNS
+// There still remains cases where elements are created via other means
+// (e.g. through `div.innerHTML`), and then operations are done on them
+// before adding them to DOM
+
+// mutationHandler covers elements when they're added to DOM
+function mutationHandler(mutationsList) {
+  for (let mutation of mutationsList) {
+    if (mutation.type === 'childList') {
+      for (let node of mutation.addedNodes) {
+        domHandlers.forEach(function (handler) {
+          if (handler.domAdded) {
+            handler.domAdded(node);
+          }
+        });
+      }
+      for (let node of mutation.removedNodes) {
+        domHandlers.forEach(function (handler) {
+          if (handler.domRemoved) {
+            handler.domRemoved(node);
+          }
+        });
+      }
+    }
+  }
+}
+
+function observeDOM() {
+  var domObserver = new MutationObserver(mutationHandler);
+  domObserver.observe(exportDocument, {
+    attributes: false,
+    childList: true,
+    characterData: false,
+    subtree: true
+  });
+}
+
+function addDOMHandler(handler) {
+  domHandlers.push(handler);
+  // Plugging into createElement and createElementNS covers
+  // most cases where elements are created programatically.
+  // domObserver will eventually cover them,
+  // but before then event listeners may be added,
+  // before e.stopImmediatePropagation can be called
+  if (handler.elementCreated) {
+    addElementCreateListener(handler.elementCreated);
+    addElementNSCreateListener(handler.elementCreated);
+  }
+  if (handler.htmlElementCreated) {
+    addElementCreateListener(handler.htmlElementCreated);
+  }
+  if (handler.nsElementCreated) {
+    addElementNSCreateListener(handler.nsElementCreated);
+  }
+}
+
+function initializeDOMHandler() {
+  observeDOM();
+}
+
 var eventListeners = {
   preanimate: [],
   postanimate: [],
@@ -530,6 +605,53 @@ function dispatch(type, { data, detail } = {}) {
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
 var currentTimePropertyDescriptor;
+var srcPropertyDescriptor;
+
+var shouldReplaceMediaWithBlobs = false;
+function replaceMediaWithBlob(media, src) {
+  var node = media.node;
+  src = src || node.src;
+  if (!src) {
+    return;
+  }
+  if (src.startsWith('blob:')) {
+    node._timeweb_srcIsBlob = true;
+    return;
+  }
+  if (media.pendingReplaceWithBlob) {
+    return media.pendingReplaceWithBlob;
+  }
+  media.pendingReplaceWithBlob = fetch(src).then(function (res) {
+    return res.blob();
+  }).then(function (blob) {
+    return new Promise(function (resolve) {
+      node.addEventListener('canplaythrough', resolve, { once: true });
+      // probably can just use `node.src = URL.createObjectURL(blob)`
+      // but if the functions change, this might create an infinite loop
+      media.setSrc(URL.createObjectURL(blob));
+      node._timeweb_srcIsBlob = true;
+    });
+  }, function (err) {
+    if (err instanceof TypeError) {
+      // eslint-disable-next-line no-console
+      console.warn('Could not fetch ' + src + '. Is cross-origin downloading enabled on the server?');
+    } else {
+      media.pendingReplaceWithBlob = null;
+      throw err;
+    }
+  }).then(function () {
+    media.pendingReplaceWithBlob = null;
+  });
+  return media.pendingReplaceWithBlob;
+}
+
+function replaceMediaWithBlobs() {
+  shouldReplaceMediaWithBlobs = true;
+  return Promise.all(mediaList.map(function (media) {
+    replaceMediaWithBlob(media);
+  }));
+}
+
 function addMediaNode(node) {
   if (!shouldBeProcessed(node)) {
     return;
@@ -545,10 +667,17 @@ function addMediaNode(node) {
   node._timeweb_oldPause = node.pause;
   var media = {
     node: node,
+    setSrc: function (src) {
+      node._timeweb_oldSrc = src;
+    },
     goToTime: function () {
       var elapsedTime = virtualNow() - lastUpdated;
       var p;
       var playbackRate;
+      if (elapsedTime === 0) {
+        // sometimes a seeked event is not dispatched the currentTime is the same
+        return;
+      }
       if (!paused) {
         if (precisionTime / 1000 < node.duration || node.loop) {
           ended = false;
@@ -659,6 +788,21 @@ function addMediaNode(node) {
       e.stopImmediatePropagation();
     }
   });
+  Object.defineProperty(node, '_timeweb_oldSrc', srcPropertyDescriptor);
+  Object.defineProperty(node, 'src', {
+    get: function () {
+      return node._timeweb_oldSrc;
+    },
+    set: function (src) {
+      node._timeweb_oldSrc = src;
+      if (shouldReplaceMediaWithBlobs) {
+        replaceMediaWithBlob(media, src);
+      }
+    }
+  });
+  if (shouldReplaceMediaWithBlobs) {
+    replaceMediaWithBlob(media);
+  }
   if (!paused && !ended) {
     // a 'pause' event may have been unintentionally dispatched
     // before with `node._timeweb_oldPause()`
@@ -677,62 +821,39 @@ function removeMediaNode(node) {
   });
 }
 
-// When identifying media nodes, using a MutationObserver covers
-// most use cases, since it directly observes the DOM
-// The cases it doesn't cover is when elements are not added to DOM
-// or significant operations occur on the elements before they are added,
-// in which order matters (e.g. `addEventListener`).
-// For many of those remaining cases, we'll also overwrite
-// document.createElement and document.createElementNS
-// There still remains cases where elements are created via other means
-// (e.g. through `div.innerHTML`), and then operations are done on them
-// before adding them to DOM
-
-// mutationHandler covers elements when they're added to DOM
-function mutationHandler(mutationsList) {
-  for (let mutation of mutationsList) {
-    if (mutation.type === 'childList') {
-      for (let node of mutation.addedNodes) {
-        if (node.nodeName === 'VIDEO') {
-          addMediaNode(node);
-        }
-      }
-      for (let node of mutation.removedNodes) {
-        if (node.nodeName === 'VIDEO') {
-          removeMediaNode(node);
-        }
-      }
-    }
-  }
+function pendingReplaceWithBlob(node) {
+  return node.pendingReplaceWithBlob;
 }
-
-function observeMedia() {
-  var mediaObserver = new MutationObserver(mutationHandler);
-  mediaObserver.observe(exportDocument, {
-    attributes: false,
-    childList: true,
-    characterData: false,
-    subtree: true
-  });
-}
-// Plugging into createElement and createElementNS covers
-// most cases where elements are created programatically.
-// mediaObserver will eventually cover them,
-// but before then event listeners may be added,
-// before e.stopImmediatePropagation can be called
-function mediaCreateListener(element, name) {
-  var type = name.toLowerCase();
-  if (type === 'video' || type.endsWith(':video')) {
-    addMediaNode(element);
-  }
-}
-
 
 function initializeMediaHandler() {
   currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
-  observeMedia();
-  addElementCreateListener(mediaCreateListener);
-  addElementNSCreateListener(mediaCreateListener);
+  srcPropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
+  addDOMHandler({
+    domAdded: function (node) {
+      if (node.nodeName === 'VIDEO') {
+        addMediaNode(node);
+      }
+    },
+    domRemoved: function (node) {
+      if (node.nodeName === 'VIDEO') {
+        removeMediaNode(node);
+      }
+    },
+    elementCreated: function (element, name) {
+      var type = name.toLowerCase();
+      if (type === 'video' || type.endsWith(':video')) {
+        addMediaNode(element);
+      }
+    }
+  });
+  // may also want to make this a listener for preanimate
+  // but currently only seeking changes time
+  subscribe('preseek', function () {
+    let replacedMedia = mediaList.filter(pendingReplaceWithBlob);
+    if (replacedMedia.length) {
+      return Promise.all(replacedMedia.map(pendingReplaceWithBlob));
+    }
+  }, { wait: true });
   subscribe('postseek', function () {
     let activeMedia = mediaList.filter(function (node) {
       return !node.paused && !node.ended;
@@ -745,10 +866,284 @@ function initializeMediaHandler() {
   }, { wait: true });
 }
 
+var svgList = [];
+function addAnimatedSVGNode(node) {
+  if (!shouldBeProcessed(node)) {
+    return;
+  }
+  var lastUpdated = virtualNow();
+  var currentTime = node.getCurrentTime();
+  var paused = node.animationsPaused();
+  if (!paused) {
+    node.pauseAnimations();
+  }
+  node._timeweb_oldAnimationsPaused = node.animationsPaused;
+  node._timeweb_oldPauseAnimations = node.pauseAnimations;
+  node._timeweb_oldUnpauseAnimations = node.unpauseAnimations;
+  node._timeweb_oldSetCurrentTime = node.setCurrentTime;
+  node.animationsPaused = function () {
+    return paused;
+  };
+  node.pauseAnimations = function () {
+    goToTime();
+    paused = true;
+  };
+  node.unpauseAnimations = function () {
+    paused = false;
+  };
+  node.setCurrentTime = function (seconds) {
+    currentTime = seconds;
+    node._timeweb_oldSetCurrentTime(seconds);
+    lastUpdated = virtualNow();
+  };
+  function goToTime() {
+    var virtualTime = virtualNow();
+    var elapsedTime = virtualTime - lastUpdated;
+    if (!paused) {
+      currentTime += elapsedTime / 1000; // currentTime is in seconds
+      node._timeweb_oldSetCurrentTime(currentTime);
+      // TODO: investigate whether node.forceRedraw() is useful here
+    }
+    lastUpdated = virtualTime;
+  }
+  markAsProcessed(node);
+  svgList.push({
+    goToTime,
+    node
+  });
+}
+
+function removeAnimatedSVGNode(node) {
+  svgList = svgList.filter(function (svg) {
+    return svg.node !== node;
+  });
+}
+
+function initializeAnimatedSVGHandler() {
+  addDOMHandler({
+    domAdded: function (node) {
+      if (node.nodeName.toLowerCase() === 'svg') {
+        addAnimatedSVGNode(node);
+      }
+    },
+    domRemoved: function (node) {
+      if (node.nodeName.toLowerCase() === 'svg') {
+        removeAnimatedSVGNode(node);
+      }
+    },
+    elementCreated: function (element, name) {
+      if (name.toLowerCase() === 'svg') {
+        addAnimatedSVGNode(element);
+      }
+    }
+  });
+  subscribe('postseek', function () {
+    svgList.forEach(function (node) {
+      node.goToTime();
+    });
+  });
+}
+
+// This file overwrites instances of the Animation Class
+// It can cover CSS Transitions, CSS Animations, and the Web-Animations API
+// see https://developer.mozilla.org/en_US/docs/Web/API/Animation
+
+var descriptors, animations = [];
+function getAnimationDuration(animation) {
+  return animation.effect.getComputedTiming().endTime;
+}
+function processAnimation(animation) {
+  if (!animationsInitialized) {
+    initializeAnimationClassHandler();
+  }
+
+  if (!shouldBeProcessed(animation)) {
+    return;
+  }
+  var ended = false;
+  var playbackRate = animation.playbackRate;
+  var lastUpdated = virtualNow();
+  var currentTime = animation.currentTime;
+
+  // to avoid firing a paused event, we'll change the playbackRate to 0
+  animation.playbackRate = 0;
+  Object.defineProperty(animation, '_timeweb_oldPlaybackRate', descriptors.playbackRate);
+  Object.defineProperty(animation, 'playbackRate', {
+    get: function () {
+      return playbackRate;
+    },
+    set: function (rate) {
+      goToTime();
+      playbackRate = rate;
+    }
+  });
+  Object.defineProperty(animation, '_timeweb_oldCurrentTime', descriptors.currentTime);
+  Object.defineProperty(animation, 'currentTime', {
+    get: function () {
+      return animation._timeweb_oldCurrentTime;
+    },
+    set: function (time) {
+      lastUpdated = virtualNow();
+      currentTime = time;
+      animation._timeweb_oldCurrentTime = time;
+    }
+  });
+
+  function endAnimation() {
+    if (ended) {
+      return;
+    }
+    if (playbackRate < 0) {
+      currentTime = 0;
+    } else {
+      currentTime = getAnimationDuration(animation);
+    }
+    animation._timeweb_oldCurrentTime = currentTime;
+    lastUpdated = virtualNow();
+    ended = true;
+    // for now we'll just restore the playback rate
+    // and let the browser dispatch events
+    animation._timeweb_oldPlaybackRate = playbackRate;
+  }
+  var anticipatedEndingTimeout;
+  // should call anticipateEnding() whenever the duration/playbackRate changes
+  // TODO: for anything that changes duration/playbackRate call anticipateEnding()
+  function anticipateEnding() {
+    if (ended || playbackRate === 0 || isNaN(currentTime)) {
+      return;
+    }
+    virtualClearTimeout(anticipatedEndingTimeout);
+    var target = playbackRate < 0 ? 0 : getAnimationDuration(animation);
+    var futureTime = (target - currentTime) / playbackRate;
+    if (futureTime < 0) {
+      endAnimation();
+      return;
+    }
+    anticipatedEndingTimeout = virtualSetTimeout(function () {
+      if (ended || animation.playState === 'idle') {
+        return;
+      }
+      if (
+        (playbackRate < 0 && currentTime <= 0) ||
+        (playbackRate > 0 && currentTime >= getAnimationDuration(animation))
+      ) {
+        endAnimation();
+      } else {
+        anticipateEnding();
+      }
+    }, futureTime);
+  }
+  function goToTime() {
+    var virtualTime = virtualNow();
+    var elapsedTime = virtualTime - lastUpdated;
+    var duration = getAnimationDuration(animation);
+    if (elapsedTime === 0) {
+      return;
+    }
+    if (!animation.playState !== 'paused') {
+      if (currentTime < duration) {
+        ended = false;
+      }
+      if (!ended) {
+        currentTime += elapsedTime * playbackRate;
+        if (
+          (playbackRate > 0 && currentTime > duration) ||
+          (playbackRate < 0 && currentTime < 0)
+        ) {
+          endAnimation();
+        } else {
+          animation._timeweb_oldCurrentTime = currentTime;
+        }
+      }
+    }
+    lastUpdated = virtualTime;
+  }
+  function remove() {
+    virtualClearTimeout(anticipatedEndingTimeout);
+    removeAnimation(animation);
+  }
+  animation.addEventListener('cancel', remove);
+  animation.addEventListener('finish', remove);
+  anticipateEnding();
+  markAsProcessed(animation);
+  animations.push({
+    goToTime,
+    animation
+  });
+}
+
+function removeAnimation(animation) {
+  animations = animations.filter(a => a.animation !== animation);
+}
+
+function getDocumentAnimations() {
+  return getAnimations(exportDocument);
+}
+
+function getAnimations(obj) {
+  // note that obj can be an element or a document
+  if (obj.getAnimations) {
+    return obj.getAnimations();
+  }
+  return [];
+}
+
+function processDocumentAnimations() {
+  getDocumentAnimations().forEach(processAnimation);
+}
+
+function processElementAnimations(element) {
+  getAnimations(element).forEach(processAnimation);
+}
+
+
+var animationsInitialized = false;
+function initializeAnimationClassHandler() {
+  if (animationsInitialized) {
+    return;
+  }
+  descriptors = getPropertyDescriptors(Animation.prototype, [
+    'currentTime',
+    'playbackRate'
+  ]);
+  subscribe('preseek', function () {
+    processDocumentAnimations();
+  });
+  subscribe('postseek', function () {
+    return Promise.all(animations.map(function (animation) {
+      return animation.goToTime();
+    }));
+  }, { wait: true });
+  animationsInitialized = true;
+}
+
+function initializeCSSHandler() {
+  initializeAnimationClassHandler();
+  function listener(event) {
+    processElementAnimations(event.target);
+  }
+  function init() {
+    processDocumentAnimations();
+    exportDocument.body.addEventListener('transitionrun', listener);
+    // 'animationstart' is only dispatched after animation-delay, so it doesn't
+    // fully cover getting all animations from CSS animations immediately
+    // there doesn't seem to be an equivalent of 'transitionrun' for CSS animations
+    exportDocument.body.addEventListener('animationstart', listener);
+  }
+  if (!exportDocument.body) {
+    exportDocument.addEventListener('load', init);
+  } else {
+    init();
+  }
+}
+
 // Since this file overwrites properties of the exportObject that other files
 
 if (exportDocument) {
   initializeMediaHandler();
+  initializeAnimatedSVGHandler();
+  initializeCSSHandler();
+  initializeDOMHandler();
 }
 
 // overwriting built-in functions...
@@ -811,11 +1206,13 @@ function animateFrame(ms, { detail } = {}) {
   );
 }
 
-var simulationAnimationId;
+var simulation;
 function startRealtimeSimulation({ fixedFrameDuration, requestNextFrameImmediately } = {}) {
   stopRealtimeSimulation();
   var simulationTime = virtualNow();
   var simulationStartTime = realtimePerformance.now() - simulationTime;
+  var running = true;
+  var simulationAnimationId;
   function simulate() {
     if (fixedFrameDuration) {
       simulationTime += fixedFrameDuration;
@@ -823,19 +1220,32 @@ function startRealtimeSimulation({ fixedFrameDuration, requestNextFrameImmediate
       simulationTime = realtimePerformance.now() - simulationStartTime;
     }
     if (requestNextFrameImmediately) {
-      simulationAnimationId = realtimeRequestAnimationFrame(simulate);
+      if (running) {
+        simulationAnimationId = realtimeRequestAnimationFrame(simulate);
+      }
       goTo(simulationTime);
     } else {
       goTo(simulationTime).then(function () {
-        simulationAnimationId = realtimeRequestAnimationFrame(simulate);
+        if (running) {
+          simulationAnimationId = realtimeRequestAnimationFrame(simulate);
+        }
       });
     }
   }
+  simulation = {
+    stop: function () {
+      running = false;
+      realtimeCancelAnimationFrame(simulationAnimationId);
+      simulation = null;
+    }
+  };
   simulationAnimationId = realtimeRequestAnimationFrame(simulate);
 }
 
 function stopRealtimeSimulation() {
-  realtimeCancelAnimationFrame(simulationAnimationId);
+  if (simulation) {
+    simulation.stop();
+  }
 }
 
 // exports to the `timeweb` module/object
@@ -843,4 +1253,4 @@ function stopRealtimeSimulation() {
 const on = subscribe;
 const off = unsubscribe;
 
-export { goTo, off, on, processUntilTime, realtime, runAnimationFrames, startRealtimeSimulation, stopRealtimeSimulation, version };
+export { goTo, off, on, processUntilTime, realtime, replaceMediaWithBlobs, runAnimationFrames, startRealtimeSimulation, stopRealtimeSimulation, version };
