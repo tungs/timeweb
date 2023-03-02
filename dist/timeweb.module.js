@@ -1040,7 +1040,7 @@ function processAnimation(animation) {
     if (elapsedTime === 0) {
       return;
     }
-    if (!animation.playState !== 'paused') {
+    if (animation.playState !== 'paused') {
       if (currentTime < duration) {
         ended = false;
       }
