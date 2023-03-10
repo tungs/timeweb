@@ -1,7 +1,11 @@
 import { getNewId, virtualNow, setVirtualTime, exportObject } from './shared.js';
 import { makeMicrotaskListener } from './utils.js';
+import { addSetting, getSetting } from './settings.js';
 
-var minimumTimeout = 1;
+addSetting({
+  name: 'minimumTimeout',
+  defaultValue: 1
+});
 
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
@@ -75,6 +79,7 @@ export function virtualSetTimeout(fn, timeout, ...args) {
       globalEval(fn);
     };
   }
+  var minimumTimeout = getSetting('minimumTimeout');
   if (isNaN(timeout) || timeout < minimumTimeout) {
     // If timeout is 0 or a small number, there may be an infinite loop
     // Changing it shouldn't disrupt code, because

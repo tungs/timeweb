@@ -47,7 +47,7 @@ export function setUserSettings(config) {
     if (isOverwritable(userSettings[key])) {
       userSettings[key] = settings[key].defaultValue;
     }
-    if (settings.onUpdate && userSettings[key] !== previousSettings[key]) {
+    if (settings[key].onUpdate && userSettings[key] !== previousSettings[key]) {
       settings[key].onUpdate(userSettings[key]);
     }
   });

@@ -1,6 +1,19 @@
 import { realtimeCancelAnimationFrame, realtimeRequestAnimationFrame, realtimePerformance } from './realtime.js';
 import { virtualNow } from './shared.js';
 import { goTo } from './go-to.js';
+import { addSetting } from './settings.js';
+
+addSetting({
+  name: 'realtimeSimulation',
+  value: false,
+  onUpdate(shouldSimulate) {
+    if (shouldSimulate) {
+      startRealtimeSimulation();
+    } else {
+      stopRealtimeSimulation();
+    }
+  }
+});
 
 var simulation;
 export function startRealtimeSimulation({ fixedFrameDuration, requestNextFrameImmediately } = {}) {
