@@ -1,6 +1,8 @@
 import { getNewId, virtualNow, setVirtualTime, exportObject } from './shared.js';
 import { makeMicrotaskListener } from './utils.js';
 
+var minimumTimeout = 1;
+
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
 // window.requestAnimationFrame, window.setTimeout, and window.setInterval
@@ -73,13 +75,13 @@ export function virtualSetTimeout(fn, timeout, ...args) {
       globalEval(fn);
     };
   }
-  if (!timeout || isNaN(timeout)) {
-    // If timeout is 0, there may be an infinite loop
-    // Changing it to 1 shouldn't disrupt code, because
+  if (isNaN(timeout) || timeout < minimumTimeout) {
+    // If timeout is 0 or a small number, there may be an infinite loop
+    // Changing it shouldn't disrupt code, because
     // setTimeout doesn't usually execute code immediately
     // Also note that virtual setInterval relies on this
     // to prevent infinite loops with intervals of 0
-    timeout = 1;
+    timeout = minimumTimeout;
   }
   pendingBlocks.push({
     time: timeout + virtualNow(),
