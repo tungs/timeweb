@@ -8,9 +8,9 @@ import { subscribe, unsubscribe } from './library-events.js';
 export { replaceMediaWithBlobs } from './media.js';
 export { realtime } from './realtime.js';
 export { version } from '../package.json';
-export { goTo } from './go-to.js';
+export { goTo, increment } from './go-to.js';
 export { startRealtimeSimulation, stopRealtimeSimulation } from './simulation.js';
-
+export { animationLoop as realtimeAnimationLoop, timeoutLoop as realtimeTimeoutLoop } from './realtime-loop.js';
 export const on = subscribe;
 export const off = unsubscribe;
 

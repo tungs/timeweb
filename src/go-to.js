@@ -2,9 +2,14 @@ import { processUntilTime } from './timeout-and-interval.js';
 import { runAnimationFrames } from './animation-frames.js';
 import { dispatch } from './library-events.js';
 import { quasiAsyncThen } from './utils.js';
+import { virtualNow } from './shared.js';
 
 export function goTo(ms, config = {}) {
   return Promise.resolve(quasiAsyncGoTo(ms, config));
+}
+
+export function increment(ms, config) {
+  return goTo(virtualNow() + ms, config);
 }
 
 function quasiAsyncGoTo(ms, config = {}) {
