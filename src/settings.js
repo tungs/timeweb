@@ -32,6 +32,11 @@ export function addSetting({ name, defaultValue, validateFn, onUpdate }) {
     userSettings[name] = defaultValue;
   }
   settings[name] = { defaultValue, validateFn, onUpdate };
+  return {
+    getValue() {
+      return getSetting(name);
+    }
+  };
 }
 
 export function getSetting(name) {
