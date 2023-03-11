@@ -8,17 +8,6 @@ import { virtualRequestAnimationFrame, virtualCancelAnimationFrame } from './ani
 import { virtualCreateElement, virtualCreateElementNS } from './create-element.js';
 import { VirtualDate } from './date.js';
 import { VirtualCustomEvent } from './custom-event.js';
-import { initializeMediaHandler } from './media.js';
-import { initializeAnimatedSVGHandler } from './animated-svg.js';
-import { initializeDOMHandler } from './dom.js';
-import { initializeCSSHandler } from './css-transitions-and-animations.js';
-
-if (exportDocument) {
-  initializeMediaHandler();
-  initializeAnimatedSVGHandler();
-  initializeCSSHandler();
-  initializeDOMHandler();
-}
 
 // overwriting built-in functions...
 exportObject.Date = VirtualDate;
