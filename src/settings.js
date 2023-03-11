@@ -27,11 +27,11 @@ function verifySettings(settingsToVerify) {
   });
 }
 
-export function addSetting({ name, defaultValue, validateFn, onUpdate }) {
+export function addSetting({ name, defaultValue, validateFn, update, onUpdate }) {
   if (isOverwritable(userSettings[name])) {
     userSettings[name] = defaultValue;
   }
-  settings[name] = { defaultValue, validateFn, onUpdate };
+  settings[name] = { defaultValue, validateFn, update, onUpdate };
   return {
     getValue() {
       return getSetting(name);
@@ -46,13 +46,20 @@ export function getSetting(name) {
 export function setUserSettings(config) {
   config = config || {};
   verifySettings(config);
-  var previousSettings = userSettings;
-  userSettings = Object.assign({}, userSettings, config);
-  Object.keys(settings).forEach(function (key) {
+  Object.keys(config).forEach(function (key) {
+    var previousValue = userSettings[key];
+    if (config[key] !== undefined) {
+      return;
+    }
+    if (settings[key].update) {
+      userSettings[key] = settings[key].update(config[key], userSettings[key]);
+    } else {
+      userSettings[key] = config[key];
+    }
     if (isOverwritable(userSettings[key])) {
       userSettings[key] = settings[key].defaultValue;
     }
-    if (settings[key].onUpdate && userSettings[key] !== previousSettings[key]) {
+    if (settings[key].onUpdate && previousValue !== userSettings[key]) {
       settings[key].onUpdate(userSettings[key]);
     }
   });
