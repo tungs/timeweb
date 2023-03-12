@@ -9,6 +9,7 @@ import { initializeMediaHandler } from './media.js';
 import { initializeAnimatedSVGHandler } from './animated-svg.js';
 import { initializeDOMHandler } from './dom.js';
 import { initializeCSSHandler } from './css-transitions-and-animations.js';
+export { convertTimingScale } from './timing.js';
 export { processUntilTime } from './timeout-and-interval.js';
 export { runAnimationFrames } from './animation-frames.js';
 export { replaceMediaWithBlobs } from './media.js';

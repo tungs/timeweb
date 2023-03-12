@@ -5,7 +5,7 @@ import { addSetting } from './settings.js';
 
 addSetting({
   name: 'realtimeSimulation',
-  value: false,
+  defaultValue: false,
   onUpdate(shouldSimulate) {
     if (shouldSimulate) {
       startRealtimeSimulation();
