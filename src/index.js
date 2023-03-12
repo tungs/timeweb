@@ -8,6 +8,7 @@ import { importGlobalSettings } from './settings.js';
 import { initializeMediaHandler } from './media.js';
 import { initializeAnimatedSVGHandler } from './animated-svg.js';
 import { initializeDOMHandler } from './dom.js';
+import { initializeAnimationPoller } from './animation-class-poller.js';
 import { initializeCSSHandler } from './css-transitions-and-animations.js';
 export { convertTimingScale } from './timing.js';
 export { processUntilTime } from './timeout-and-interval.js';
@@ -30,4 +31,5 @@ if (exportDocument) {
   initializeAnimatedSVGHandler();
   initializeCSSHandler();
   initializeDOMHandler();
+  initializeAnimationPoller();
 }
