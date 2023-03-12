@@ -48,7 +48,7 @@ export function setUserSettings(config) {
   verifySettings(config);
   Object.keys(config).forEach(function (key) {
     var previousValue = userSettings[key];
-    if (config[key] !== undefined) {
+    if (config[key] === undefined) {
       return;
     }
     if (settings[key].update) {
