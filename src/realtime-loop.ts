@@ -1,10 +1,15 @@
 import { realtimeRequestAnimationFrame, realtimeCancelAnimationFrame, realtimeSetTimeout, realtimeClearTimeout, realtimePerformance } from './realtime';
 
-function realtimeLoop({ requestTimingFn, cancelTimingFn, fn, queueNextImmediately = false }) {
+type LoopTimingFn = (elapsed: number) => void;
+type RequestTimingFn = (runFn: (time?: number) => any) => number;
+type CancelTimingFn = (id: number) => void;
+function realtimeLoop({ requestTimingFn, cancelTimingFn, fn, queueNextImmediately = false }
+  : { requestTimingFn: RequestTimingFn, cancelTimingFn: CancelTimingFn, fn: LoopTimingFn, queueNextImmediately: boolean }
+  ) {
   var lastUpdated = realtimePerformance.now();
   var running = true;
-  var requestId;
-  var previousResult;
+  var requestId: number;
+  var previousResult: any;
   function processResult() {
     if (running) {
       requestId = requestTimingFn(run);
@@ -37,7 +42,7 @@ function realtimeLoop({ requestTimingFn, cancelTimingFn, fn, queueNextImmediatel
     }
   };
 }
-export function animationLoop(fn, { queueNextImmediately } = {}) {
+export function animationLoop(fn: LoopTimingFn, { queueNextImmediately = false } = {}) {
   return realtimeLoop({
     fn,
     requestTimingFn: realtimeRequestAnimationFrame,
@@ -45,9 +50,8 @@ export function animationLoop(fn, { queueNextImmediately } = {}) {
     queueNextImmediately
   });
 }
-
-export function timeoutLoop(fn, { queueNextImmediately, timeout = 17 } = {}) {
-  function requestTimeout(runFn) {
+export function timeoutLoop(fn: LoopTimingFn, { queueNextImmediately = false, timeout = 17 } = {}) {
+  function requestTimeout(runFn: TimerHandler) {
     return realtimeSetTimeout(runFn, timeout);
   }
   return realtimeLoop({
