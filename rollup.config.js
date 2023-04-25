@@ -37,6 +37,14 @@ export default [
         format: 'es'
       }
     ],
-    plugins: [ typescript({ compilerOptions: { resolveJsonModule: true } }), json() ]
+    plugins: [
+      typescript({
+        compilerOptions: {
+          resolveJsonModule: true,
+          target: 'es2015'
+        }
+      }),
+      json()
+    ]
   }
 ];
