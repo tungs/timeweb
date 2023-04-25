@@ -4,12 +4,12 @@ import { markAsProcessed, shouldBeProcessed } from './markings';
 import { addDOMHandler } from './dom';
 import { subscribe } from './library-events';
 const timewebEventDetail = 'timeweb generated';
-var mediaList = [];
-var currentTimePropertyDescriptor;
-var srcPropertyDescriptor;
+var mediaList: MediaItem[] = [];
+var currentTimePropertyDescriptor: PropertyDescriptor;
+var srcPropertyDescriptor: PropertyDescriptor;
 
 var shouldReplaceMediaWithBlobs = false;
-function replaceMediaWithBlob(media, src) {
+function replaceMediaWithBlob(media: MediaItem, src?: string) {
   var node = media.node;
   src = src || node.src;
   if (!src) {
@@ -52,8 +52,20 @@ export function replaceMediaWithBlobs() {
     replaceMediaWithBlob(media);
   }));
 }
-
-export function addMediaNode(node) {
+interface CustomizedMediaNode extends HTMLMediaElement {
+  _timeweb_srcIsBlob: boolean;
+  _timeweb_oldPlay: HTMLMediaElement['play'];
+  _timeweb_oldPause: HTMLMediaElement['pause'];
+  _timeweb_oldSrc: HTMLMediaElement['src'];
+  _timeweb_oldCurrentTime: HTMLMediaElement['currentTime'];
+}
+interface MediaItem {
+  node: CustomizedMediaNode;
+  goToTime(): undefined | Promise<any>;
+  setSrc(src: string): void;
+  pendingReplaceWithBlob?: Promise<void> | null;
+}
+export function addMediaNode(node: CustomizedMediaNode) {
   if (!shouldBeProcessed(node)) {
     return;
   }
@@ -68,13 +80,13 @@ export function addMediaNode(node) {
   node._timeweb_oldPause = node.pause;
   var media = {
     node: node,
-    setSrc: function (src) {
+    setSrc: function (src: string) {
       node._timeweb_oldSrc = src;
     },
     goToTime: function () {
       var elapsedTime = virtualNow() - lastUpdated;
-      var p;
-      var playbackRate;
+      var p: undefined | Promise<any>;
+      var playbackRate: number;
       if (elapsedTime === 0) {
         // sometimes a seeked event is not dispatched the currentTime is the same
         return;
@@ -165,9 +177,10 @@ export function addMediaNode(node) {
     lastUpdated = virtualNow();
     paused = false;
     node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));
+    return Promise.resolve();
   };
   node.pause = function () {
-    media.goToTime(virtualNow());
+    media.goToTime();
     paused = true;
     node.dispatchEvent(new CustomEvent('pause', { detail: timewebEventDetail }));
   };
@@ -176,7 +189,7 @@ export function addMediaNode(node) {
       media.goToTime();
       paused = false;
       node._timeweb_oldPause();
-    } else if (e.detail !== timewebEventDetail) {
+    } else if ((e as CustomEvent).detail !== timewebEventDetail) {
       e.stopImmediatePropagation();
     }
   });
@@ -185,7 +198,7 @@ export function addMediaNode(node) {
     if (e.isTrusted) {
       media.goToTime();
       paused = true;
-    } else if (e.detail !== timewebEventDetail) {
+    } else if ((e as CustomEvent).detail !== timewebEventDetail) {
       e.stopImmediatePropagation();
     }
   });
@@ -215,7 +228,6 @@ export function addMediaNode(node) {
     });
   }
 }
-
 export function removeMediaNode(node) {
   mediaList = mediaList.filter(function (media) {
     return media.node !== node;
@@ -227,12 +239,12 @@ function pendingReplaceWithBlob(node) {
 }
 
 export function initializeMediaHandler() {
-  currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
-  srcPropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
+  currentTimePropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime')!;
+  srcPropertyDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src')!;
   addDOMHandler({
     domAdded: function (node) {
       if (node.nodeName === 'VIDEO') {
-        addMediaNode(node);
+        addMediaNode(node as CustomizedMediaNode);
       }
     },
     domRemoved: function (node) {
@@ -243,7 +255,7 @@ export function initializeMediaHandler() {
     elementCreated: function (element, name) {
       var type = name.toLowerCase();
       if (type === 'video' || type.endsWith(':video')) {
-        addMediaNode(element);
+        addMediaNode(element as CustomizedMediaNode);
       }
     }
   });
@@ -256,8 +268,8 @@ export function initializeMediaHandler() {
     }
   }, { wait: true });
   subscribe('postseek', function () {
-    let activeMedia = mediaList.filter(function (node) {
-      return !node.paused && !node.ended;
+    let activeMedia = mediaList.filter(function (media) {
+      return !media.node.paused && !media.node.ended;
     });
     if (activeMedia.length) {
       return Promise.all(activeMedia.map(function (media) {
