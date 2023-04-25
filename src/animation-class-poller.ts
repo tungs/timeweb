@@ -15,7 +15,7 @@ var pollAnimationSetting = addSetting({
   }
 });
 
-var pollerId;
+var pollerId: number | undefined;
 function startAnimationPoller() {
   stopAnimationPoller();
   function poller() {
