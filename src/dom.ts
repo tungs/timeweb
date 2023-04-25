@@ -1,7 +1,16 @@
 import { exportDocument } from './shared';
 import { addElementCreateListener, addElementNSCreateListener } from './create-element';
+import type { ElementCreateListener, ElementNSCreateListener } from './create-element';
 
-var domHandlers = [];
+interface DOMHandler {
+  domAdded?(node: Node): unknown;
+  domRemoved?(node: Node): unknown;
+  elementCreated?: ElementNSCreateListener;
+  htmlElementCreated?: ElementCreateListener;
+  nsElementCreated?: ElementNSCreateListener;
+}
+
+var domHandlers: DOMHandler[] = [];
 // When identifying media nodes, using a MutationObserver covers
 // most use cases, since it directly observes the DOM
 // The cases it doesn't cover is when elements are not added to DOM
@@ -14,7 +23,7 @@ var domHandlers = [];
 // before adding them to DOM
 
 // mutationHandler covers elements when they're added to DOM
-function mutationHandler(mutationsList) {
+function mutationHandler(mutationsList: MutationRecord[]) {
   for (let mutation of mutationsList) {
     if (mutation.type === 'childList') {
       for (let node of mutation.addedNodes) {
@@ -37,7 +46,7 @@ function mutationHandler(mutationsList) {
 
 export function observeDOM() {
   var domObserver = new MutationObserver(mutationHandler);
-  domObserver.observe(exportDocument, {
+  domObserver.observe(exportDocument!, {
     attributes: false,
     childList: true,
     characterData: false,
@@ -45,7 +54,7 @@ export function observeDOM() {
   });
 }
 
-export function addDOMHandler(handler) {
+export function addDOMHandler(handler: DOMHandler) {
   domHandlers.push(handler);
   // Plugging into createElement and createElementNS covers
   // most cases where elements are created programatically.
