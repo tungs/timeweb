@@ -1,4 +1,11 @@
-var currentLogger = {
+interface Logger {
+  logError(...args: any[]): void | unknown;
+  logWarning(...args: any[]): void | unknown;
+  logMessage(...args: any[]): void | unknown;
+  flush?(): void | unknown;
+}
+
+var currentLogger: Logger = {
   logError() {
     // eslint-disable-next-line no-console
     console.error.apply(console, arguments);
@@ -34,15 +41,15 @@ export function getLogger() {
   return currentLogger;
 }
 
-export function logError() {
+export function logError(..._: any[]) {
   currentLogger.logError.apply(currentLogger, arguments);
 }
 
-export function logMessage() {
+export function logMessage(..._: any[]) {
   currentLogger.logMessage.apply(currentLogger, arguments);
 }
 
-export function logWarning() {
+export function logWarning(..._: any[]) {
   currentLogger.logWarning.apply(currentLogger, arguments);
 }
 
