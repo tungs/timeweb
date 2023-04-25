@@ -1,10 +1,15 @@
 import { getNewId, virtualNow } from './shared';
 import { makeMicrotaskListener } from './utils';
 
-var animationFrameBlocks = [];
-var currentAnimationFrameBlocks = [];
+type RequestFrameFn = (time: number) => unknown;
+interface AnimationFrameBlock {
+  id: number;
+  fn: RequestFrameFn;
+}
+var animationFrameBlocks: AnimationFrameBlock[] = [];
+var currentAnimationFrameBlocks: AnimationFrameBlock[] = [];
 
-export function virtualRequestAnimationFrame(fn) {
+export function virtualRequestAnimationFrame(fn: RequestFrameFn) {
   var id = getNewId();
   animationFrameBlocks.push({
     id: id,
@@ -12,7 +17,7 @@ export function virtualRequestAnimationFrame(fn) {
   });
   return id;
 }
-export function virtualCancelAnimationFrame(id) {
+export function virtualCancelAnimationFrame(id: number) {
   animationFrameBlocks = animationFrameBlocks.filter(function (block) {
     return block.id !== id;
   });
@@ -29,10 +34,10 @@ export function runAnimationFrames() {
   animationFrameBlocks = [];
   // We should be careful when iterating through currentAnimationFrameBlocks,
   // because virtualCancelAnimationFrame creates a new reference to currentAnimationFrameBlocks
-  var resolve;
+  var resolve: undefined | ((result?: any) => unknown);
   function run() {
     while (currentAnimationFrameBlocks.length) {
-      let block = currentAnimationFrameBlocks.shift();
+      let block = currentAnimationFrameBlocks.shift() as AnimationFrameBlock;
       // According to https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame,
       // the passed argument to the callback should be the starting time of the
       // chunk of requestAnimationFrame callbacks that are called for that particular frame
