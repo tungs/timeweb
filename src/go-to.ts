@@ -4,15 +4,15 @@ import { dispatch } from './library-events';
 import { quasiAsyncThen } from './utils';
 import { virtualNow } from './shared';
 
-export function goTo(ms, config = {}) {
+export function goTo(ms: number, config: any = {}) {
   return Promise.resolve(quasiAsyncGoTo(ms, config));
 }
 
-export function increment(ms, config) {
+export function increment(ms: number, config?: any) {
   return goTo(virtualNow() + ms, config);
 }
 
-function quasiAsyncGoTo(ms, config = {}) {
+function quasiAsyncGoTo(ms: number, config: any = {}) {
   return quasiAsyncThen(
     seekTo(ms, config),
     function () {
@@ -23,7 +23,7 @@ function quasiAsyncGoTo(ms, config = {}) {
   );
 }
 
-function seekTo(ms, { detail } = {}) {
+function seekTo(ms: number, { detail }: { detail?: any } = {}) {
   return quasiAsyncThen(
     dispatch('preseek', { data: { seekTime: ms }, detail }),
     function () {
@@ -37,7 +37,7 @@ function seekTo(ms, { detail } = {}) {
   );
 }
 
-function animateFrame(ms, { detail } = {}) {
+function animateFrame(ms: number, { detail }: {detail?: any} = {}) {
   return quasiAsyncThen(
     dispatch('preanimate', { detail }),
     function () {
