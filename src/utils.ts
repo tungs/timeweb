@@ -1,4 +1,4 @@
-export function isThenable(o) {
+export function isThenable(o: any) {
   return o && (o.then instanceof Function);
 }
 
@@ -20,7 +20,7 @@ export function isThenable(o) {
 // 2. Potential performance (though this should be benchmarked, since this
 //   impementation adds overhead with additional functions)
 // 3. (To a much lesser extent) Compatibility for browsers without async/await
-export function quasiAsyncThen(a, fnB) {
+export function quasiAsyncThen(a: any, fnB: () => any) {
   if (isThenable(a)) {
     return a.then(fnB);
   } else {
@@ -30,7 +30,7 @@ export function quasiAsyncThen(a, fnB) {
 
 // if the loop body returns a promise, wait until
 // that promise resolves before continuing the loop
-export function quasiAsyncTimesLoop(iterations, body, i) {
+export function quasiAsyncTimesLoop(iterations: number, body: (iterations: number) => any, i: number) {
   i = i || 0;
   while (i < iterations) {
     let r = body(i++);
@@ -42,7 +42,7 @@ export function quasiAsyncTimesLoop(iterations, body, i) {
   }
 }
 
-export function quasiAsyncWhileLoop(condition, body) {
+export function quasiAsyncWhileLoop(condition: () => boolean, body: () => any) {
   while (condition()) {
     let r = body();
     if (isThenable(r)) {
@@ -53,7 +53,7 @@ export function quasiAsyncWhileLoop(condition, body) {
   }
 }
 
-export function quasiAsyncIterateArray(array, body) {
+export function quasiAsyncIterateArray<Type>(array: Type[], body: (item: Type) => any) {
   var i = 0;
   return quasiAsyncWhileLoop(
     function () {
@@ -77,7 +77,7 @@ export function quasiAsyncIterateArray(array, body) {
 // This allows timeweb to exit and reenter loops to allow microtasks to run in
 // the intended order.
 
-export function makeMicrotaskListener(cb) {
+export function makeMicrotaskListener(cb: () => any) {
   // there should be a postmicrotask event for every premicrotask event
   var listener = function () {
     ret.shouldExit = true;
@@ -96,8 +96,12 @@ export function makeMicrotaskListener(cb) {
   return ret;
 }
 
-export function getPropertyDescriptors(obj, properties) {
-  var descriptions = {};
+export type DescriptorsType =  {
+  [id: PropertyKey]: PropertyDescriptor | undefined;
+};
+
+export function getPropertyDescriptors(obj: any, properties: PropertyKey[]) {
+  var descriptions: DescriptorsType = {};
   properties.forEach(function (property) {
     descriptions[property] = Object.getOwnPropertyDescriptor(obj, property);
   });
