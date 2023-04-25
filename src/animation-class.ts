@@ -1,5 +1,6 @@
 import { virtualNow, exportDocument } from './shared';
 import { getPropertyDescriptors } from './utils';
+import type { DescriptorsType } from './utils';
 import { markAsProcessed, shouldBeProcessed } from './markings';
 import { subscribe } from './library-events';
 import { virtualSetTimeout, virtualClearTimeout } from './timeout-and-interval';
@@ -8,11 +9,22 @@ import { virtualSetTimeout, virtualClearTimeout } from './timeout-and-interval';
 // It can cover CSS Transitions, CSS Animations, and the Web-Animations API
 // see https://developer.mozilla.org/en_US/docs/Web/API/Animation
 
-var descriptors, animations = [];
-function getAnimationDuration(animation) {
-  return animation.effect.getComputedTiming().endTime;
+interface AnimationItem {
+  goToTime(): void;
+  animation: CustomizedAnimation;
 }
-export function processAnimation(animation) {
+var descriptors: DescriptorsType | undefined, animations: AnimationItem[] = [];
+
+function getAnimationDuration(animation: Animation) {
+  return animation.effect!.getComputedTiming().endTime!;
+}
+
+interface CustomizedAnimation extends Animation {
+  _timeweb_oldCurrentTime: Animation['currentTime'];
+  _timeweb_oldPlaybackRate: Animation['playbackRate'];
+  _timeweb_oldFinish: Animation['finish'];
+}
+export function processAnimation(animation: CustomizedAnimation) {
   if (!animationsInitialized) {
     initializeAnimationClassHandler();
   }
@@ -23,11 +35,11 @@ export function processAnimation(animation) {
   var ended = false;
   var playbackRate = animation.playbackRate;
   var lastUpdated = virtualNow();
-  var currentTime = animation.currentTime;
+  var currentTime = animation.currentTime || 0;
 
   // to avoid firing a paused event, we'll change the playbackRate to 0
   animation.playbackRate = 0;
-  Object.defineProperty(animation, '_timeweb_oldPlaybackRate', descriptors.playbackRate);
+  Object.defineProperty(animation, '_timeweb_oldPlaybackRate', descriptors!.playbackRate as PropertyDescriptor);
   Object.defineProperty(animation, 'playbackRate', {
     get: function () {
       return playbackRate;
@@ -37,7 +49,7 @@ export function processAnimation(animation) {
       playbackRate = rate;
     }
   });
-  Object.defineProperty(animation, '_timeweb_oldCurrentTime', descriptors.currentTime);
+  Object.defineProperty(animation, '_timeweb_oldCurrentTime', descriptors!.currentTime as PropertyDescriptor);
   Object.defineProperty(animation, 'currentTime', {
     get: function () {
       return animation._timeweb_oldCurrentTime;
@@ -143,10 +155,10 @@ export function removeAnimation(animation) {
 }
 
 export function getDocumentAnimations() {
-  return getAnimations(exportDocument);
+  return getAnimations(exportDocument as Document);
 }
 
-export function getAnimations(obj) {
+export function getAnimations(obj: Document | Element) {
   // note that obj can be an element or a document
   if (obj.getAnimations) {
     return obj.getAnimations();
@@ -155,11 +167,11 @@ export function getAnimations(obj) {
 }
 
 export function processDocumentAnimations() {
-  getDocumentAnimations().forEach(processAnimation);
+  getDocumentAnimations().forEach(processAnimation as (a: Animation) => undefined);
 }
 
 export function processElementAnimations(element) {
-  getAnimations(element).forEach(processAnimation);
+  getAnimations(element).forEach(processAnimation as (a: Animation) => undefined);
 }
 
 
