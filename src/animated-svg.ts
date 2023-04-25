@@ -2,8 +2,17 @@ import { virtualNow } from './shared';
 import { markAsProcessed, shouldBeProcessed } from './markings';
 import { addDOMHandler } from './dom';
 import { subscribe } from './library-events';
-var svgList = [];
-export function addAnimatedSVGNode(node) {
+interface CustomSVGNode extends SVGSVGElement {
+  _timeweb_oldAnimationsPaused: SVGSVGElement['animationsPaused'];
+  _timeweb_oldPauseAnimations: SVGSVGElement['pauseAnimations'];
+  _timeweb_oldUnpauseAnimations: SVGSVGElement['unpauseAnimations'];
+  _timeweb_oldSetCurrentTime: SVGSVGElement['setCurrentTime'];
+}
+var svgList: Array<{
+  goToTime(): void;
+  node: CustomSVGNode;
+}> = [];
+export function addAnimatedSVGNode(node: CustomSVGNode) {
   if (!shouldBeProcessed(node)) {
     return;
   }
@@ -49,7 +58,7 @@ export function addAnimatedSVGNode(node) {
   });
 }
 
-export function removeAnimatedSVGNode(node) {
+export function removeAnimatedSVGNode(node: CustomSVGNode) {
   svgList = svgList.filter(function (svg) {
     return svg.node !== node;
   });
@@ -59,17 +68,17 @@ export function initializeAnimatedSVGHandler() {
   addDOMHandler({
     domAdded: function (node) {
       if (node.nodeName.toLowerCase() === 'svg') {
-        addAnimatedSVGNode(node);
+        addAnimatedSVGNode(node as CustomSVGNode);
       }
     },
     domRemoved: function (node) {
       if (node.nodeName.toLowerCase() === 'svg') {
-        removeAnimatedSVGNode(node);
+        removeAnimatedSVGNode(node as CustomSVGNode);
       }
     },
     elementCreated: function (element, name) {
       if (name.toLowerCase() === 'svg') {
-        addAnimatedSVGNode(element);
+        addAnimatedSVGNode(element as CustomSVGNode);
       }
     }
   });
