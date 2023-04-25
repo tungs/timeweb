@@ -1,14 +1,22 @@
 import { quasiAsyncIterateArray, quasiAsyncThen, isThenable } from './utils';
 import { virtualNow } from './shared';
 
-var eventListeners = {
+type TimewebEventHandlerType = (e: TimewebEvent) => any;
+type TimewebEventTypes = 'preanimate' | 'postanimate' | 'preseek' | 'postseek';
+type ListenerType = {
+  config?: any;
+  fn: TimewebEventHandlerType;
+};
+var eventListeners: {
+  [type: string]: ListenerType[];
+} = {
   preanimate: [],
   postanimate: [],
   preseek: [],
   postseek: []
 };
 
-export function subscribe(type, fn, config) {
+export function subscribe(type: TimewebEventTypes, fn: TimewebEventHandlerType, config?: any) {
   if (!eventListeners[type]) {
     // eslint-disable-next-line no-console
     console.error('Invalid subscriber type: ' + type);
@@ -17,7 +25,7 @@ export function subscribe(type, fn, config) {
   eventListeners[type].push({ fn, config });
 }
 
-export function unsubscribe(type, fn) {
+export function unsubscribe(type: TimewebEventTypes, fn: TimewebEventHandlerType) {
   if (!eventListeners[type]) {
     // eslint-disable-next-line no-console
     console.error('Invalid unsubscriber type: ' + type);
@@ -27,27 +35,32 @@ export function unsubscribe(type, fn) {
 }
 
 class TimewebEvent {
-  constructor({ data, detail, virtualTime }) {
+  data: any;
+  detail: any;
+  virtualTime: number;
+  afterPromises: Promise<any>[];
+  immediateAfterPromises: Promise<any>[];
+  constructor({ data, detail, virtualTime }: { data?: any, detail?: any, virtualTime: number }) {
     this.data = data;
     this.detail = detail;
     this.virtualTime = virtualTime;
     this.afterPromises = [];
     this.immediateAfterPromises = [];
   }
-  waitAfterFor(promise) {
+  waitAfterFor(promise: any) {
     if (isThenable(promise)) {
       this.afterPromises.push(promise);
     }
   }
-  waitImmediatelyAfterFor(promise) {
+  waitImmediatelyAfterFor(promise: any) {
     if (isThenable(promise)) {
       this.immediateAfterPromises.push(promise);
     }
   }
 }
 
-export function dispatch(type, { data, detail } = {}) {
-  var waits = [];
+export function dispatch(type: TimewebEventTypes, { data, detail }: { data?: any, detail?: any } = {}) {
+  var waits: Promise<any>[] = [];
   return quasiAsyncThen(
     quasiAsyncIterateArray(
       eventListeners[type],
