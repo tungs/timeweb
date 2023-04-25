@@ -1,16 +1,18 @@
 import { logWarning } from './logging';
 
-function warnConversionLimit(elapsedTime, conversionLimit) {
+function warnConversionLimit(elapsedTime: number, conversionLimit: number) {
   logWarning('When converting elapsed time, ' + elapsedTime + 'ms exceeded conversion limit (' + conversionLimit + 'ms)');
 }
 
-function convertWithRealTimeStep(fn, realTimeStep, maximumConversionTime) {
-  return function (virtualTime, elapsedRealTime) {
+export type TimeDilationFunction = (virtualTime: number) => number;
+
+function convertWithRealTimeStep(fn: TimeDilationFunction, realTimeStep: number, maximumConversionTime: number | null) {
+  return function (virtualTime: number, elapsedRealTime: number) {
     if (maximumConversionTime !== null && elapsedRealTime > maximumConversionTime) {
       warnConversionLimit(elapsedRealTime, maximumConversionTime);
       return elapsedRealTime;
     }
-    var elapsedTime = 0, step, time;
+    var elapsedTime = 0, step: number, time: number;
     for (time = 0; time < elapsedRealTime; time += realTimeStep) {
       step = Math.min(realTimeStep, elapsedRealTime - time);
       elapsedTime += fn(virtualTime + elapsedTime) * step;
@@ -19,16 +21,16 @@ function convertWithRealTimeStep(fn, realTimeStep, maximumConversionTime) {
   };
 }
 
-function convertWithVirtualTimeStep(fn, virtualTimeStep, maximumConversionTime) {
-  return function (virtualTime, elapsedRealTime) {
+function convertWithVirtualTimeStep(fn: TimeDilationFunction, virtualTimeStep: number, maximumConversionTime: number | null) {
+  return function (virtualTime: number, elapsedRealTime: number) {
     if (maximumConversionTime !== null && elapsedRealTime > maximumConversionTime) {
       warnConversionLimit(elapsedRealTime, maximumConversionTime);
       return elapsedRealTime;
     }
     var elapsedTime = 0;
-    var scale;
+    var scale: number;
     var timeLeft = elapsedRealTime;
-    var step;
+    var step: number;
     while (timeLeft > 0) {
       scale = fn(virtualTime + elapsedTime);
       if (scale <= 0) {
@@ -46,9 +48,14 @@ function convertWithVirtualTimeStep(fn, virtualTimeStep, maximumConversionTime) 
   };
 }
 
-export function convertTimingScale(fn, {
+interface ConvertTimingScaleOptions {
+  realTimeStep?: number | undefined;
+  virtualTimeStep?: number | undefined;
+  maximumConversionTime?: number | null;
+}
+export function convertTimingScale(fn: TimeDilationFunction, {
   realTimeStep, virtualTimeStep, maximumConversionTime = 10000
-} = {}) {
+}: ConvertTimingScaleOptions = {}) {
   if (!realTimeStep && !virtualTimeStep) {
     realTimeStep = 0.1;
   }
