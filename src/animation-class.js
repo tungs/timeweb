@@ -48,7 +48,6 @@ export function processAnimation(animation) {
       animation._timeweb_oldCurrentTime = time;
     }
   });
-
   function endAnimation() {
     if (ended) {
       return;
@@ -56,7 +55,11 @@ export function processAnimation(animation) {
     if (playbackRate < 0) {
       currentTime = 0;
     } else {
-      currentTime = getAnimationDuration(animation);
+      // In Firefox, for some situations, the computed animation duration is fractions
+      // of a millisecond beyond the actual animation duration. When this happens, the animation
+      // loops to the beginning. This should be irrelevant because `animation._timeweb_oldFinish()`
+      // is called later, but we'll set the time here anyway
+      currentTime = getAnimationDuration(animation) - 1;
     }
     animation._timeweb_oldCurrentTime = currentTime;
     lastUpdated = virtualNow();
@@ -64,7 +67,10 @@ export function processAnimation(animation) {
     // for now we'll just restore the playback rate
     // and let the browser dispatch events
     animation._timeweb_oldPlaybackRate = playbackRate;
+    animation._timeweb_oldFinish();
   }
+  animation._timeweb_oldFinish = animation.finish;
+  animation.finish = endAnimation;
   var anticipatedEndingTimeout;
   // should call anticipateEnding() whenever the duration/playbackRate changes
   // TODO: for anything that changes duration/playbackRate call anticipateEnding()
