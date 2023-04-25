@@ -1,8 +1,8 @@
-import { virtualNow, exportDocument } from './shared.js';
-import { getPropertyDescriptors } from './utils.js';
-import { markAsProcessed, shouldBeProcessed } from './markings.js';
-import { subscribe } from './library-events.js';
-import { virtualSetTimeout, virtualClearTimeout } from './timeout-and-interval.js';
+import { virtualNow, exportDocument } from './shared';
+import { getPropertyDescriptors } from './utils';
+import { markAsProcessed, shouldBeProcessed } from './markings';
+import { subscribe } from './library-events';
+import { virtualSetTimeout, virtualClearTimeout } from './timeout-and-interval';
 
 // This file overwrites instances of the Animation Class
 // It can cover CSS Transitions, CSS Animations, and the Web-Animations API

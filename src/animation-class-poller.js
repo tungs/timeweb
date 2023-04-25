@@ -1,6 +1,6 @@
-import { initializeAnimationClassHandler, processDocumentAnimations } from './animation-class.js';
-import { addSetting } from './settings.js';
-import { realtimeSetTimeout, realtimeClearTimeout } from './realtime.js';
+import { initializeAnimationClassHandler, processDocumentAnimations } from './animation-class';
+import { addSetting } from './settings';
+import { realtimeSetTimeout, realtimeClearTimeout } from './realtime';
 
 const pollerTimeout = 1;
 var pollAnimationSetting = addSetting({

@@ -1,8 +1,8 @@
-import { processUntilTime } from './timeout-and-interval.js';
-import { runAnimationFrames } from './animation-frames.js';
-import { dispatch } from './library-events.js';
-import { quasiAsyncThen } from './utils.js';
-import { virtualNow } from './shared.js';
+import { processUntilTime } from './timeout-and-interval';
+import { runAnimationFrames } from './animation-frames';
+import { dispatch } from './library-events';
+import { quasiAsyncThen } from './utils';
+import { virtualNow } from './shared';
 
 export function goTo(ms, config = {}) {
   return Promise.resolve(quasiAsyncGoTo(ms, config));

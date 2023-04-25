@@ -1,13 +1,13 @@
 // Since this file overwrites properties of the exportObject that other files
 // assign from, it's important that those other files run first
 // In particular `realtime.js` is one of those files
-import './realtime.js';
-import { virtualNow, exportObject, exportDocument } from './shared.js';
-import { virtualSetTimeout, virtualSetInterval, virtualClearTimeout } from './timeout-and-interval.js';
-import { virtualRequestAnimationFrame, virtualCancelAnimationFrame } from './animation-frames.js';
-import { virtualCreateElement, virtualCreateElementNS } from './create-element.js';
-import { VirtualDate } from './date.js';
-import { VirtualCustomEvent } from './custom-event.js';
+import './realtime';
+import { virtualNow, exportObject, exportDocument } from './shared';
+import { virtualSetTimeout, virtualSetInterval, virtualClearTimeout } from './timeout-and-interval';
+import { virtualRequestAnimationFrame, virtualCancelAnimationFrame } from './animation-frames';
+import { virtualCreateElement, virtualCreateElementNS } from './create-element';
+import { VirtualDate } from './date';
+import { VirtualCustomEvent } from './custom-event';
 
 // overwriting built-in functions...
 exportObject.Date = VirtualDate;

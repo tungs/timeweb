@@ -2,8 +2,8 @@
 // this file should be imported before the time properties of exportObject and exportDocument
 // are overwritten
 
-import { exportObject, exportDocument } from './shared.js';
-import { markAsRealtime } from './markings.js';
+import { exportObject, exportDocument } from './shared';
+import { markAsRealtime } from './markings';
 export let realtimeDate = exportObject.Date;
 export let realtimeCustomEvent = exportObject.CustomEvent;
 export let realtimeSetTimeout = exportObject.setTimeout.bind(exportObject);

@@ -1,5 +1,5 @@
-import { exportDocument } from './shared.js';
-import { addElementCreateListener, addElementNSCreateListener } from './create-element.js';
+import { exportDocument } from './shared';
+import { addElementCreateListener, addElementNSCreateListener } from './create-element';
 
 var domHandlers = [];
 // When identifying media nodes, using a MutationObserver covers

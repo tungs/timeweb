@@ -1,7 +1,7 @@
-import { realtimeCancelAnimationFrame, realtimeRequestAnimationFrame, realtimePerformance } from './realtime.js';
-import { virtualNow } from './shared.js';
-import { goTo } from './go-to.js';
-import { addSetting } from './settings.js';
+import { realtimeCancelAnimationFrame, realtimeRequestAnimationFrame, realtimePerformance } from './realtime';
+import { virtualNow } from './shared';
+import { goTo } from './go-to';
+import { addSetting } from './settings';
 
 addSetting({
   name: 'realtimeSimulation',

@@ -1,5 +1,5 @@
-import { exportObject } from './shared.js';
-import { logWarning } from './logging.js';
+import { exportObject } from './shared';
+import { logWarning } from './logging';
 var settingsPropertyName = 'timewebConfig';
 var userSettings = {};
 var settings = {};

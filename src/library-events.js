@@ -1,5 +1,5 @@
-import { quasiAsyncIterateArray, quasiAsyncThen, isThenable } from './utils.js';
-import { virtualNow } from './shared.js';
+import { quasiAsyncIterateArray, quasiAsyncThen, isThenable } from './utils';
+import { virtualNow } from './shared';
 
 var eventListeners = {
   preanimate: [],

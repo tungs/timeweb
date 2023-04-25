@@ -1,4 +1,4 @@
-import { virtualNow } from './shared.js';
+import { virtualNow } from './shared';
 
 var oldCustomEvent = CustomEvent;
 export var VirtualCustomEvent = class CustomEvent extends oldCustomEvent {

@@ -1,6 +1,6 @@
-import { getNewId, virtualNow, setVirtualTime, exportObject } from './shared.js';
-import { makeMicrotaskListener } from './utils.js';
-import { addSetting, getSetting } from './settings.js';
+import { getNewId, virtualNow, setVirtualTime, exportObject } from './shared';
+import { makeMicrotaskListener } from './utils';
+import { addSetting, getSetting } from './settings';
 
 addSetting({
   name: 'minimumTimeout',

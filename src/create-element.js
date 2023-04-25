@@ -1,4 +1,4 @@
-import { exportDocument } from './shared.js';
+import { exportDocument } from './shared';
 
 var elementCreateListeners = [];
 var elementNSCreateListeners = [];

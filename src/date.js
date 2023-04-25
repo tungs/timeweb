@@ -1,4 +1,4 @@
-import { virtualNow, startTime } from './shared.js';
+import { virtualNow, startTime } from './shared';
 
 var oldDate = Date;
 export var VirtualDate = class Date extends oldDate {

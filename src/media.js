@@ -1,8 +1,8 @@
-import { virtualNow } from './shared.js';
-import { virtualSetTimeout } from './timeout-and-interval.js';
-import { markAsProcessed, shouldBeProcessed } from './markings.js';
-import { addDOMHandler } from './dom.js';
-import { subscribe } from './library-events.js';
+import { virtualNow } from './shared';
+import { virtualSetTimeout } from './timeout-and-interval';
+import { markAsProcessed, shouldBeProcessed } from './markings';
+import { addDOMHandler } from './dom';
+import { subscribe } from './library-events';
 const timewebEventDetail = 'timeweb generated';
 var mediaList = [];
 var currentTimePropertyDescriptor;

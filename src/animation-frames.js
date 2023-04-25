@@ -1,5 +1,5 @@
-import { getNewId, virtualNow } from './shared.js';
-import { makeMicrotaskListener } from './utils.js';
+import { getNewId, virtualNow } from './shared';
+import { makeMicrotaskListener } from './utils';
 
 var animationFrameBlocks = [];
 var currentAnimationFrameBlocks = [];

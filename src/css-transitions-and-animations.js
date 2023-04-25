@@ -1,5 +1,5 @@
-import { initializeAnimationClassHandler, processDocumentAnimations, processElementAnimations } from './animation-class.js';
-import { exportDocument } from './shared.js';
+import { initializeAnimationClassHandler, processDocumentAnimations, processElementAnimations } from './animation-class';
+import { exportDocument } from './shared';
 
 export function initializeCSSHandler() {
   initializeAnimationClassHandler();

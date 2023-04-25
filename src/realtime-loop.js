@@ -1,4 +1,4 @@
-import { realtimeRequestAnimationFrame, realtimeCancelAnimationFrame, realtimeSetTimeout, realtimeClearTimeout, realtimePerformance } from './realtime.js';
+import { realtimeRequestAnimationFrame, realtimeCancelAnimationFrame, realtimeSetTimeout, realtimeClearTimeout, realtimePerformance } from './realtime';
 
 function realtimeLoop({ requestTimingFn, cancelTimingFn, fn, queueNextImmediately = false }) {
   var lastUpdated = realtimePerformance.now();

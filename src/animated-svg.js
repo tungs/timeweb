@@ -1,7 +1,7 @@
-import { virtualNow } from './shared.js';
-import { markAsProcessed, shouldBeProcessed } from './markings.js';
-import { addDOMHandler } from './dom.js';
-import { subscribe } from './library-events.js';
+import { virtualNow } from './shared';
+import { markAsProcessed, shouldBeProcessed } from './markings';
+import { addDOMHandler } from './dom';
+import { subscribe } from './library-events';
 var svgList = [];
 export function addAnimatedSVGNode(node) {
   if (!shouldBeProcessed(node)) {
