@@ -26,20 +26,20 @@ var domHandlers: DOMHandler[] = [];
 function mutationHandler(mutationsList: MutationRecord[]) {
   for (let mutation of mutationsList) {
     if (mutation.type === 'childList') {
-      for (let node of mutation.addedNodes) {
+      mutation.addedNodes.forEach(function (node) {
         domHandlers.forEach(function (handler) {
           if (handler.domAdded) {
             handler.domAdded(node);
           }
         });
-      }
-      for (let node of mutation.removedNodes) {
+      });
+      mutation.removedNodes.forEach(function (node) {
         domHandlers.forEach(function (handler) {
           if (handler.domRemoved) {
             handler.domRemoved(node);
           }
         });
-      }
+      });
     }
   }
 }
