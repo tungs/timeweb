@@ -15,13 +15,15 @@ addSetting({
   }
 });
 
-var simulation;
-export function startRealtimeSimulation({ fixedFrameDuration, requestNextFrameImmediately } = {}) {
+var simulation: { stop(): void } | undefined | null;
+export function startRealtimeSimulation(
+  { fixedFrameDuration, requestNextFrameImmediately }: { fixedFrameDuration?: number, requestNextFrameImmediately?: boolean } = {}
+) {
   stopRealtimeSimulation();
   var simulationTime = virtualNow();
   var simulationStartTime = realtimePerformance.now() - simulationTime;
   var running = true;
-  var simulationAnimationId;
+  var simulationAnimationId: number;
   function simulate() {
     if (fixedFrameDuration) {
       simulationTime += fixedFrameDuration;
