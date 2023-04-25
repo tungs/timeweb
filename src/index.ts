@@ -1,26 +1,26 @@
 // exports to the `timeweb` module/object
 // see overwrite-time.js to see exports written
 // to `exportObject` (e.g. `window`)
-import './overwrite-time.js';
-import { exportDocument } from './shared.js';
-import { subscribe, unsubscribe } from './library-events.js';
-import { importGlobalSettings } from './settings.js';
-import { initializeMediaHandler } from './media.js';
-import { initializeAnimatedSVGHandler } from './animated-svg.js';
-import { initializeDOMHandler } from './dom.js';
-import { initializeAnimationPoller } from './animation-class-poller.js';
-import { initializeCSSHandler } from './css-transitions-and-animations.js';
+import './overwrite-time';
+import { exportDocument } from './shared';
+import { subscribe, unsubscribe } from './library-events';
+import { importGlobalSettings } from './settings';
+import { initializeMediaHandler } from './media';
+import { initializeAnimatedSVGHandler } from './animated-svg';
+import { initializeDOMHandler } from './dom';
+import { initializeAnimationPoller } from './animation-class-poller';
+import { initializeCSSHandler } from './css-transitions-and-animations';
 import { overwriteElementAnimate } from './element-animate';
-export { convertTimingScale } from './timing.js';
-export { processUntilTime } from './timeout-and-interval.js';
-export { runAnimationFrames } from './animation-frames.js';
-export { replaceMediaWithBlobs } from './media.js';
-export { realtime } from './realtime.js';
+export { convertTimingScale } from './timing';
+export { processUntilTime } from './timeout-and-interval';
+export { runAnimationFrames } from './animation-frames';
+export { replaceMediaWithBlobs } from './media';
+export { realtime } from './realtime';
 export { version } from '../package.json';
-export { goTo, increment } from './go-to.js';
-export { startRealtimeSimulation, stopRealtimeSimulation } from './simulation.js';
-export { animationLoop as realtimeAnimationLoop, timeoutLoop as realtimeTimeoutLoop } from './realtime-loop.js';
-export { setUserSettings as config } from './settings.js';
+export { goTo, increment } from './go-to';
+export { startRealtimeSimulation, stopRealtimeSimulation } from './simulation';
+export { animationLoop as realtimeAnimationLoop, timeoutLoop as realtimeTimeoutLoop } from './realtime-loop';
+export { setUserSettings as config } from './settings';
 export const on = subscribe;
 export const off = unsubscribe;
 
