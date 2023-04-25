@@ -5,7 +5,7 @@ var virtualTime = 0;
 
 export const startTime = Date.now();
 
-export function setVirtualTime(time) {
+export function setVirtualTime(time: number) {
   virtualTime = time;
 }
 
