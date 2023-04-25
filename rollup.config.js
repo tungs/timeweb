@@ -1,5 +1,5 @@
 import json from '@rollup/plugin-json';
-import { terser } from 'rollup-plugin-terser';
+import terser from '@rollup/plugin-terser';
 import path from 'path';
 import fs from 'fs';
 import * as meta from './package.json';
