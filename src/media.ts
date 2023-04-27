@@ -73,7 +73,7 @@ export function addMediaNode(node: CustomizedMediaNode) {
   markAsProcessed(node);
   var lastUpdated = virtualNow();
   var precisionTime = node.currentTime * 1000;
-  var pendingSeeked;
+  var pendingSeeked: undefined | null | ((result?: any) => any);
   var autoplay = node.autoplay;
   var paused = !node.autoplay && node.paused;
   var ended = node.ended;
@@ -229,13 +229,13 @@ export function addMediaNode(node: CustomizedMediaNode) {
     });
   }
 }
-export function removeMediaNode(node) {
+export function removeMediaNode(node: CustomizedMediaNode) {
   mediaList = mediaList.filter(function (media) {
     return media.node !== node;
   });
 }
 
-function pendingReplaceWithBlob(node) {
+function pendingReplaceWithBlob(node: MediaItem) {
   return node.pendingReplaceWithBlob;
 }
 
@@ -250,7 +250,7 @@ export function initializeMediaHandler() {
     },
     domRemoved: function (node) {
       if (node.nodeName === 'VIDEO') {
-        removeMediaNode(node);
+        removeMediaNode(node as CustomizedMediaNode);
       }
     },
     elementCreated: function (element, name) {
