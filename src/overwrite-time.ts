@@ -10,11 +10,7 @@ import { VirtualDate } from './date';
 import { VirtualCustomEvent } from './custom-event';
 
 // overwriting built-in functions...
-
-// the type signature of the built in Date seems to be difficult/impossible
-// to reimplement (see `date.ts` for more information). Instead we'll just
-// cast it as the right type
-exportObject.Date = VirtualDate as typeof exportObject.Date;
+exportObject.Date = VirtualDate;
 exportObject.CustomEvent = VirtualCustomEvent;
 exportObject.performance.now = virtualNow;
 exportObject.setTimeout = virtualSetTimeout;

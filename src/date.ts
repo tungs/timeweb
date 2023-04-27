@@ -49,4 +49,4 @@ export var VirtualDate = Object.assign(VirtualDateFunction, {
   },
   parse: OldDate.parse.bind(OldDate) as typeof OldDate.parse,
   UTC: OldDate.UTC.bind(OldDate) as typeof OldDate.UTC
-});
+}) as typeof OldDate;
