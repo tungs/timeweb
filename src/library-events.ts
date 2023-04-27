@@ -7,9 +7,7 @@ type ListenerType = {
   config?: any;
   fn: TimewebEventHandlerType;
 };
-var eventListeners: {
-  [type: string]: ListenerType[];
-} = {
+var eventListeners: Record<TimewebEventTypes, ListenerType[]> = {
   preanimate: [],
   postanimate: [],
   preseek: [],
