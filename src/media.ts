@@ -1,4 +1,5 @@
 import { virtualNow } from './shared';
+import { VirtualCustomEvent } from './custom-event';
 import { virtualSetTimeout } from './timeout-and-interval';
 import { markAsProcessed, shouldBeProcessed } from './markings';
 import { addDOMHandler } from './dom';
@@ -104,7 +105,7 @@ export function addMediaNode(node: CustomizedMediaNode) {
             } else {
               precisionTime = node.duration * 1000;
               ended = true;
-              node.dispatchEvent(new CustomEvent('ended', { detail: timewebEventDetail }));
+              node.dispatchEvent(new VirtualCustomEvent('ended', { detail: timewebEventDetail }));
             }
           }
           if (playbackRate < 0 && node.duration && precisionTime < 0) {
@@ -159,7 +160,7 @@ export function addMediaNode(node: CustomizedMediaNode) {
       if (autoplay && paused) {
         lastUpdated = virtualNow();
         paused = false;
-        node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));
+        node.dispatchEvent(new VirtualCustomEvent('play', { detail: timewebEventDetail }));
       }
     }
   });
@@ -176,13 +177,13 @@ export function addMediaNode(node: CustomizedMediaNode) {
   node.play = function () {
     lastUpdated = virtualNow();
     paused = false;
-    node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));
+    node.dispatchEvent(new VirtualCustomEvent('play', { detail: timewebEventDetail }));
     return Promise.resolve();
   };
   node.pause = function () {
     media.goToTime();
     paused = true;
-    node.dispatchEvent(new CustomEvent('pause', { detail: timewebEventDetail }));
+    node.dispatchEvent(new VirtualCustomEvent('pause', { detail: timewebEventDetail }));
   };
   node.addEventListener('play', function (e) {
     if (e.isTrusted) {
@@ -224,7 +225,7 @@ export function addMediaNode(node: CustomizedMediaNode) {
     // we'll also use a virtual setTimeout, since in practice
     // the user may be adding a listener afterwards (see issue #1)
     virtualSetTimeout(function () {
-      node.dispatchEvent(new CustomEvent('play', { detail: timewebEventDetail }));
+      node.dispatchEvent(new VirtualCustomEvent('play', { detail: timewebEventDetail }));
     });
   }
 }
