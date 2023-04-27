@@ -1,5 +1,5 @@
 // exports to the `timeweb` module/object
-// see overwrite-time.js to see exports written
+// see overwrite-time.ts to see exports written
 // to `exportObject` (e.g. `window`)
 import './overwrite-time';
 import { exportDocument } from './shared';
