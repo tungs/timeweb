@@ -8,7 +8,10 @@ var OldDate = Date;
 // are defined by the same function, and TypeScript does not seem to be able to distinguish
 // between them. While TypeScript could narrow type based off of constructor
 // (like `typeof new.target`), it does not currently seem to do so.
-// This is an edge case, as functions that are both constructors and callables
+// Additionally, TypeScript allows `new` to be used with only with void-returning
+// functions (see https://github.com/Microsoft/TypeScript/issues/2310), while this
+// implementation when used with `new` returns a `Date` object instead of void.
+// The Date signature is an edge case, as functions that are both constructors and callables
 // are unconventional/bad practice in modern JavaScript
 var VirtualDateFunction = function Date(
   timestampOrYearOrDateOrString?: number | string | Date,
@@ -42,6 +45,7 @@ var VirtualDateFunction = function Date(
     milliseconds
   );
 }
+
 export var VirtualDate = Object.assign(VirtualDateFunction, {
   prototype: OldDate.prototype,
   now() {
