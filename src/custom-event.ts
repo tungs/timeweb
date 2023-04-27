@@ -2,8 +2,8 @@ import { virtualNow } from './shared';
 
 var OldCustomEvent = CustomEvent;
 export var VirtualCustomEvent = class CustomEvent<Type> extends OldCustomEvent<Type> {
-  constructor(type: string, eventInitDict?: CustomEventInit<Type>) {
-    super(type, eventInitDict);
+  constructor(...args: ConstructorParameters<typeof OldCustomEvent<Type>>) {
+    super(...args);
     Object.defineProperty(this, 'timeStamp', { value: virtualNow() });
   }
 };
