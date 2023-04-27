@@ -10,6 +10,7 @@ import { initializeAnimatedSVGHandler } from './animated-svg.js';
 import { initializeDOMHandler } from './dom.js';
 import { initializeAnimationPoller } from './animation-class-poller.js';
 import { initializeCSSHandler } from './css-transitions-and-animations.js';
+import { overwriteElementAnimate } from './element-animate';
 export { convertTimingScale } from './timing.js';
 export { processUntilTime } from './timeout-and-interval.js';
 export { runAnimationFrames } from './animation-frames.js';
@@ -29,6 +30,7 @@ importGlobalSettings();
 if (exportDocument) {
   initializeMediaHandler();
   initializeAnimatedSVGHandler();
+  overwriteElementAnimate();
   initializeCSSHandler();
   initializeDOMHandler();
   initializeAnimationPoller();
