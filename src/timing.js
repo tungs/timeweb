@@ -1,5 +1,8 @@
-function convertWithRealTimeStep(fn, realTimeStep) {
+function convertWithRealTimeStep(fn, realTimeStep, maximumConversionTime) {
   return function (virtualTime, elapsedRealTime) {
+    if (maximumConversionTime !== null && elapsedRealTime > maximumConversionTime) {
+      return elapsedRealTime;
+    }
     var elapsedTime = 0, step, time;
     for (time = 0; time < elapsedRealTime; time += realTimeStep) {
       step = Math.min(realTimeStep, elapsedRealTime - time);
@@ -9,8 +12,11 @@ function convertWithRealTimeStep(fn, realTimeStep) {
   };
 }
 
-function convertWithVirtualTimeStep(fn, virtualTimeStep) {
+function convertWithVirtualTimeStep(fn, virtualTimeStep, maximumConversionTime) {
   return function (virtualTime, elapsedRealTime) {
+    if (maximumConversionTime !== null && elapsedRealTime > maximumConversionTime) {
+      return elapsedRealTime;
+    }
     var elapsedTime = 0;
     var scale;
     var timeLeft = elapsedRealTime;
@@ -33,14 +39,14 @@ function convertWithVirtualTimeStep(fn, virtualTimeStep) {
 }
 
 export function convertTimingScale(fn, {
-  realTimeStep, virtualTimeStep
+  realTimeStep, virtualTimeStep, maximumConversionTime = 10000
 } = {}) {
   if (!realTimeStep && !virtualTimeStep) {
     realTimeStep = 0.1;
   }
   if (realTimeStep) {
-    return convertWithRealTimeStep(fn, realTimeStep);
+    return convertWithRealTimeStep(fn, realTimeStep, maximumConversionTime);
   } else if (virtualTimeStep) {
-    return convertWithVirtualTimeStep(fn, virtualTimeStep);
+    return convertWithVirtualTimeStep(fn, virtualTimeStep, maximumConversionTime);
   }
 }
