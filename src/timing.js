@@ -1,6 +1,13 @@
+import { logWarning } from './logging';
+
+function warnConversionLimit(elapsedTime, conversionLimit) {
+  logWarning('When converting elapsed time, ' + elapsedTime + 'ms exceeded conversion limit (' + conversionLimit + 'ms)');
+}
+
 function convertWithRealTimeStep(fn, realTimeStep, maximumConversionTime) {
   return function (virtualTime, elapsedRealTime) {
     if (maximumConversionTime !== null && elapsedRealTime > maximumConversionTime) {
+      warnConversionLimit(elapsedRealTime, maximumConversionTime);
       return elapsedRealTime;
     }
     var elapsedTime = 0, step, time;
@@ -15,6 +22,7 @@ function convertWithRealTimeStep(fn, realTimeStep, maximumConversionTime) {
 function convertWithVirtualTimeStep(fn, virtualTimeStep, maximumConversionTime) {
   return function (virtualTime, elapsedRealTime) {
     if (maximumConversionTime !== null && elapsedRealTime > maximumConversionTime) {
+      warnConversionLimit(elapsedRealTime, maximumConversionTime);
       return elapsedRealTime;
     }
     var elapsedTime = 0;
