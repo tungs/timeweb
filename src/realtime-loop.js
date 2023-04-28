@@ -4,6 +4,7 @@ function realtimeLoop({ requestTimingFn, cancelTimingFn, fn, queueNextImmediatel
   var lastUpdated = realtimePerformance.now();
   var running = true;
   var requestId;
+  var previousResult;
   function processResult() {
     if (running) {
       requestId = requestTimingFn(run);
@@ -17,8 +18,13 @@ function realtimeLoop({ requestTimingFn, cancelTimingFn, fn, queueNextImmediatel
     var elapsed = currentTime - lastUpdated;
     lastUpdated = currentTime;
     if (queueNextImmediately) {
-      requestId = requestTimingFn(run);
-      fn(elapsed);
+      Promise.resolve(previousResult).then(function () {
+        if (!running) {
+          return;
+        }
+        requestId = requestTimingFn(run);
+        previousResult = fn(elapsed);
+      });
     } else {
       Promise.resolve(fn(elapsed)).then(processResult);
     }
