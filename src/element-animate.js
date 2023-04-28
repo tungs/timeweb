@@ -3,8 +3,8 @@ import { initializeAnimationClassHandler, processAnimation } from './animation-c
 export function overwriteElementAnimate() {
   initializeAnimationClassHandler();
   var oldElementAnimate = Element.prototype.animate;
-  Element.prototype.animate = function (keyframes, options) {
-    var animation = oldElementAnimate.call(this, keyframes, options);
+  Element.prototype.animate = function (...args) {
+    var animation = oldElementAnimate.apply(this, args);
     processAnimation(animation);
     return animation;
   };
