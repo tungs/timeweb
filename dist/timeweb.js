@@ -1359,7 +1359,7 @@
     }
   }
 
-  var version = "0.3.2";
+  var version = "0.4.0-prerelease";
 
   function goTo(ms, config = {}) {
     return Promise.resolve(quasiAsyncGoTo(ms, config));
