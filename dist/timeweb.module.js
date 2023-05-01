@@ -209,6 +209,95 @@ function getPropertyDescriptors(obj, properties) {
   return descriptions;
 }
 
+var currentLogger = {
+  logError() {
+    // eslint-disable-next-line no-console
+    console.error.apply(console, arguments);
+  },
+  logWarning() {
+    // eslint-disable-next-line no-console
+    console.warn.apply(console, arguments);
+  },
+  logMessage() {
+    // eslint-disable-next-line no-console
+    console.log.apply(console, arguments);
+  }
+};
+
+function logWarning() {
+  currentLogger.logWarning.apply(currentLogger, arguments);
+}
+
+var settingsPropertyName = 'timewebConfig';
+var userSettings = {};
+var settings = {};
+
+function isOverwritable(obj) {
+  return obj === undefined || obj === null;
+}
+
+function importGlobalSettings() {
+  setUserSettings(exportObject[settingsPropertyName]);
+}
+
+function verifySettings(settingsToVerify) {
+  Object.keys(settingsToVerify).forEach(function (key) {
+    if (settings[key] === undefined) {
+      logWarning('Unknown user-defined config: ' + key);
+    } else {
+      if (settings[key].validateFn) {
+        let validationMessage = settings[key].validateFn(settingsToVerify[key]);
+        if (validationMessage) {
+          logWarning(validationMessage);
+        }
+      }
+    }
+  });
+}
+
+function addSetting({ name, defaultValue, validateFn, update, onUpdate }) {
+  if (isOverwritable(userSettings[name])) {
+    userSettings[name] = defaultValue;
+  }
+  settings[name] = { defaultValue, validateFn, update, onUpdate };
+  return {
+    getValue() {
+      return getSetting(name);
+    }
+  };
+}
+
+function getSetting(name) {
+  return userSettings[name];
+}
+
+function setUserSettings(config) {
+  config = config || {};
+  verifySettings(config);
+  Object.keys(config).forEach(function (key) {
+    var previousValue = userSettings[key];
+    if (config[key] === undefined) {
+      return;
+    }
+    if (settings[key].update) {
+      userSettings[key] = settings[key].update(config[key], userSettings[key]);
+    } else {
+      userSettings[key] = config[key];
+    }
+    if (isOverwritable(userSettings[key])) {
+      userSettings[key] = settings[key].defaultValue;
+    }
+    if (settings[key].onUpdate && previousValue !== userSettings[key]) {
+      settings[key].onUpdate(userSettings[key]);
+    }
+  });
+}
+
+addSetting({
+  name: 'minimumTimeout',
+  defaultValue: 1
+});
+
 // a block is a segment of blocking code, wrapped in a function
 // to be run at a certain virtual time. They're created by
 // window.requestAnimationFrame, window.setTimeout, and window.setInterval
@@ -281,13 +370,14 @@ function virtualSetTimeout(fn, timeout, ...args) {
       globalEval(fn);
     };
   }
-  if (!timeout || isNaN(timeout)) {
-    // If timeout is 0, there may be an infinite loop
-    // Changing it to 1 shouldn't disrupt code, because
+  var minimumTimeout = getSetting('minimumTimeout');
+  if (isNaN(timeout) || timeout < minimumTimeout) {
+    // If timeout is 0 or a small number, there may be an infinite loop
+    // Changing it shouldn't disrupt code, because
     // setTimeout doesn't usually execute code immediately
     // Also note that virtual setInterval relies on this
     // to prevent infinite loops with intervals of 0
-    timeout = 1;
+    timeout = minimumTimeout;
   }
   pendingBlocks.push({
     time: timeout + virtualNow(),
@@ -454,71 +544,21 @@ var VirtualCustomEvent = class CustomEvent extends oldCustomEvent {
   }
 };
 
-var domHandlers = [];
-// When identifying media nodes, using a MutationObserver covers
-// most use cases, since it directly observes the DOM
-// The cases it doesn't cover is when elements are not added to DOM
-// or significant operations occur on the elements before they are added,
-// in which order matters (e.g. `addEventListener`).
-// For many of those remaining cases, we'll also overwrite
-// document.createElement and document.createElementNS
-// There still remains cases where elements are created via other means
-// (e.g. through `div.innerHTML`), and then operations are done on them
-// before adding them to DOM
+// Since this file overwrites properties of the exportObject that other files
 
-// mutationHandler covers elements when they're added to DOM
-function mutationHandler(mutationsList) {
-  for (let mutation of mutationsList) {
-    if (mutation.type === 'childList') {
-      for (let node of mutation.addedNodes) {
-        domHandlers.forEach(function (handler) {
-          if (handler.domAdded) {
-            handler.domAdded(node);
-          }
-        });
-      }
-      for (let node of mutation.removedNodes) {
-        domHandlers.forEach(function (handler) {
-          if (handler.domRemoved) {
-            handler.domRemoved(node);
-          }
-        });
-      }
-    }
-  }
-}
-
-function observeDOM() {
-  var domObserver = new MutationObserver(mutationHandler);
-  domObserver.observe(exportDocument, {
-    attributes: false,
-    childList: true,
-    characterData: false,
-    subtree: true
-  });
-}
-
-function addDOMHandler(handler) {
-  domHandlers.push(handler);
-  // Plugging into createElement and createElementNS covers
-  // most cases where elements are created programatically.
-  // domObserver will eventually cover them,
-  // but before then event listeners may be added,
-  // before e.stopImmediatePropagation can be called
-  if (handler.elementCreated) {
-    addElementCreateListener(handler.elementCreated);
-    addElementNSCreateListener(handler.elementCreated);
-  }
-  if (handler.htmlElementCreated) {
-    addElementCreateListener(handler.htmlElementCreated);
-  }
-  if (handler.nsElementCreated) {
-    addElementNSCreateListener(handler.nsElementCreated);
-  }
-}
-
-function initializeDOMHandler() {
-  observeDOM();
+// overwriting built-in functions...
+exportObject.Date = VirtualDate;
+exportObject.CustomEvent = VirtualCustomEvent;
+exportObject.performance.now = virtualNow;
+exportObject.setTimeout = virtualSetTimeout;
+exportObject.requestAnimationFrame = virtualRequestAnimationFrame;
+exportObject.setInterval = virtualSetInterval;
+exportObject.cancelAnimationFrame = virtualCancelAnimationFrame;
+exportObject.clearTimeout = virtualClearTimeout;
+exportObject.clearInterval = virtualClearTimeout;
+if (exportDocument) {
+  exportDocument.createElement = virtualCreateElement;
+  exportDocument.createElementNS = virtualCreateElementNS;
 }
 
 var eventListeners = {
@@ -600,6 +640,73 @@ function dispatch(type, { data, detail } = {}) {
       }
     }
   );
+}
+
+var domHandlers = [];
+// When identifying media nodes, using a MutationObserver covers
+// most use cases, since it directly observes the DOM
+// The cases it doesn't cover is when elements are not added to DOM
+// or significant operations occur on the elements before they are added,
+// in which order matters (e.g. `addEventListener`).
+// For many of those remaining cases, we'll also overwrite
+// document.createElement and document.createElementNS
+// There still remains cases where elements are created via other means
+// (e.g. through `div.innerHTML`), and then operations are done on them
+// before adding them to DOM
+
+// mutationHandler covers elements when they're added to DOM
+function mutationHandler(mutationsList) {
+  for (let mutation of mutationsList) {
+    if (mutation.type === 'childList') {
+      for (let node of mutation.addedNodes) {
+        domHandlers.forEach(function (handler) {
+          if (handler.domAdded) {
+            handler.domAdded(node);
+          }
+        });
+      }
+      for (let node of mutation.removedNodes) {
+        domHandlers.forEach(function (handler) {
+          if (handler.domRemoved) {
+            handler.domRemoved(node);
+          }
+        });
+      }
+    }
+  }
+}
+
+function observeDOM() {
+  var domObserver = new MutationObserver(mutationHandler);
+  domObserver.observe(exportDocument, {
+    attributes: false,
+    childList: true,
+    characterData: false,
+    subtree: true
+  });
+}
+
+function addDOMHandler(handler) {
+  domHandlers.push(handler);
+  // Plugging into createElement and createElementNS covers
+  // most cases where elements are created programatically.
+  // domObserver will eventually cover them,
+  // but before then event listeners may be added,
+  // before e.stopImmediatePropagation can be called
+  if (handler.elementCreated) {
+    addElementCreateListener(handler.elementCreated);
+    addElementNSCreateListener(handler.elementCreated);
+  }
+  if (handler.htmlElementCreated) {
+    addElementCreateListener(handler.htmlElementCreated);
+  }
+  if (handler.nsElementCreated) {
+    addElementNSCreateListener(handler.nsElementCreated);
+  }
+}
+
+function initializeDOMHandler() {
+  observeDOM();
 }
 
 const timewebEventDetail = 'timeweb generated';
@@ -988,7 +1095,6 @@ function processAnimation(animation) {
       animation._timeweb_oldCurrentTime = time;
     }
   });
-
   function endAnimation() {
     if (ended) {
       return;
@@ -996,7 +1102,11 @@ function processAnimation(animation) {
     if (playbackRate < 0) {
       currentTime = 0;
     } else {
-      currentTime = getAnimationDuration(animation);
+      // In Firefox, for some situations, the computed animation duration is fractions
+      // of a millisecond beyond the actual animation duration. When this happens, the animation
+      // loops to the beginning. This should be irrelevant because `animation._timeweb_oldFinish()`
+      // is called later, but we'll set the time here anyway
+      currentTime = getAnimationDuration(animation) - 1;
     }
     animation._timeweb_oldCurrentTime = currentTime;
     lastUpdated = virtualNow();
@@ -1004,7 +1114,10 @@ function processAnimation(animation) {
     // for now we'll just restore the playback rate
     // and let the browser dispatch events
     animation._timeweb_oldPlaybackRate = playbackRate;
+    animation._timeweb_oldFinish();
   }
+  animation._timeweb_oldFinish = animation.finish;
+  animation.finish = endAnimation;
   var anticipatedEndingTimeout;
   // should call anticipateEnding() whenever the duration/playbackRate changes
   // TODO: for anything that changes duration/playbackRate call anticipateEnding()
@@ -1117,6 +1230,40 @@ function initializeAnimationClassHandler() {
   animationsInitialized = true;
 }
 
+const pollerTimeout = 1;
+var pollAnimationSetting = addSetting({
+  name: 'pollAnimations',
+  defaultValue: false,
+  onUpdate: function (pollAnimations) {
+    if (pollAnimations) {
+      startAnimationPoller();
+    } else {
+      stopAnimationPoller();
+    }
+  }
+});
+
+var pollerId;
+function startAnimationPoller() {
+  stopAnimationPoller();
+  function poller() {
+    pollerId = realtimeSetTimeout(poller, pollerTimeout);
+    initializeAnimationClassHandler();
+    processDocumentAnimations();
+  }
+  pollerId = realtimeSetTimeout(poller, pollerTimeout);
+}
+
+function stopAnimationPoller() {
+  realtimeClearTimeout(pollerId);
+}
+
+function initializeAnimationPoller() {
+  if (pollAnimationSetting.getValue()) {
+    startAnimationPoller();
+  }
+}
+
 function initializeCSSHandler() {
   initializeAnimationClassHandler();
   function listener(event) {
@@ -1137,34 +1284,83 @@ function initializeCSSHandler() {
   }
 }
 
-// Since this file overwrites properties of the exportObject that other files
-
-if (exportDocument) {
-  initializeMediaHandler();
-  initializeAnimatedSVGHandler();
-  initializeCSSHandler();
-  initializeDOMHandler();
+function overwriteElementAnimate() {
+  initializeAnimationClassHandler();
+  var oldElementAnimate = Element.prototype.animate;
+  Element.prototype.animate = function (...args) {
+    var animation = oldElementAnimate.apply(this, args);
+    processAnimation(animation);
+    return animation;
+  };
 }
 
-// overwriting built-in functions...
-exportObject.Date = VirtualDate;
-exportObject.CustomEvent = VirtualCustomEvent;
-exportObject.performance.now = virtualNow;
-exportObject.setTimeout = virtualSetTimeout;
-exportObject.requestAnimationFrame = virtualRequestAnimationFrame;
-exportObject.setInterval = virtualSetInterval;
-exportObject.cancelAnimationFrame = virtualCancelAnimationFrame;
-exportObject.clearTimeout = virtualClearTimeout;
-exportObject.clearInterval = virtualClearTimeout;
-if (exportDocument) {
-  exportDocument.createElement = virtualCreateElement;
-  exportDocument.createElementNS = virtualCreateElementNS;
+function warnConversionLimit(elapsedTime, conversionLimit) {
+  logWarning('When converting elapsed time, ' + elapsedTime + 'ms exceeded conversion limit (' + conversionLimit + 'ms)');
+}
+
+function convertWithRealTimeStep(fn, realTimeStep, maximumConversionTime) {
+  return function (virtualTime, elapsedRealTime) {
+    if (maximumConversionTime !== null && elapsedRealTime > maximumConversionTime) {
+      warnConversionLimit(elapsedRealTime, maximumConversionTime);
+      return elapsedRealTime;
+    }
+    var elapsedTime = 0, step, time;
+    for (time = 0; time < elapsedRealTime; time += realTimeStep) {
+      step = Math.min(realTimeStep, elapsedRealTime - time);
+      elapsedTime += fn(virtualTime + elapsedTime) * step;
+    }
+    return elapsedTime;
+  };
+}
+
+function convertWithVirtualTimeStep(fn, virtualTimeStep, maximumConversionTime) {
+  return function (virtualTime, elapsedRealTime) {
+    if (maximumConversionTime !== null && elapsedRealTime > maximumConversionTime) {
+      warnConversionLimit(elapsedRealTime, maximumConversionTime);
+      return elapsedRealTime;
+    }
+    var elapsedTime = 0;
+    var scale;
+    var timeLeft = elapsedRealTime;
+    var step;
+    while (timeLeft > 0) {
+      scale = fn(virtualTime + elapsedTime);
+      if (scale <= 0) {
+        return;
+      }
+      step = Math.max(virtualTimeStep / scale, 0.001);
+      if (step > timeLeft) {
+        elapsedTime += timeLeft * scale;
+      } else {
+        elapsedTime += step * scale;
+      }
+      timeLeft -= step;
+    }
+    return elapsedTime;
+  };
+}
+
+function convertTimingScale(fn, {
+  realTimeStep, virtualTimeStep, maximumConversionTime = 10000
+} = {}) {
+  if (!realTimeStep && !virtualTimeStep) {
+    realTimeStep = 0.1;
+  }
+  if (realTimeStep) {
+    return convertWithRealTimeStep(fn, realTimeStep, maximumConversionTime);
+  } else if (virtualTimeStep) {
+    return convertWithVirtualTimeStep(fn, virtualTimeStep, maximumConversionTime);
+  }
 }
 
 var version = "0.3.2-prerelease";
 
 function goTo(ms, config = {}) {
   return Promise.resolve(quasiAsyncGoTo(ms, config));
+}
+
+function increment(ms, config) {
+  return goTo(virtualNow() + ms, config);
 }
 
 function quasiAsyncGoTo(ms, config = {}) {
@@ -1205,6 +1401,18 @@ function animateFrame(ms, { detail } = {}) {
     }
   );
 }
+
+addSetting({
+  name: 'realtimeSimulation',
+  defaultValue: false,
+  onUpdate(shouldSimulate) {
+    if (shouldSimulate) {
+      startRealtimeSimulation();
+    } else {
+      stopRealtimeSimulation();
+    }
+  }
+});
 
 var simulation;
 function startRealtimeSimulation({ fixedFrameDuration, requestNextFrameImmediately } = {}) {
@@ -1248,9 +1456,78 @@ function stopRealtimeSimulation() {
   }
 }
 
-// exports to the `timeweb` module/object
+function realtimeLoop({ requestTimingFn, cancelTimingFn, fn, queueNextImmediately = false }) {
+  var lastUpdated = realtimePerformance.now();
+  var running = true;
+  var requestId;
+  var previousResult;
+  function processResult() {
+    if (running) {
+      requestId = requestTimingFn(run);
+    }
+  }
+  function run() {
+    if (!running) {
+      return;
+    }
+    var currentTime = realtimePerformance.now();
+    var elapsed = currentTime - lastUpdated;
+    lastUpdated = currentTime;
+    if (queueNextImmediately) {
+      Promise.resolve(previousResult).then(function () {
+        if (!running) {
+          return;
+        }
+        requestId = requestTimingFn(run);
+        previousResult = fn(elapsed);
+      });
+    } else {
+      Promise.resolve(fn(elapsed)).then(processResult);
+    }
+  }
+  requestId = requestTimingFn(run);
+  return {
+    stop() {
+      running = false;
+      cancelTimingFn(requestId);
+    }
+  };
+}
+function animationLoop(fn, { queueNextImmediately } = {}) {
+  return realtimeLoop({
+    fn,
+    requestTimingFn: realtimeRequestAnimationFrame,
+    cancelTimingFn: realtimeCancelAnimationFrame,
+    queueNextImmediately
+  });
+}
 
+function timeoutLoop(fn, { queueNextImmediately, timeout = 17 } = {}) {
+  function requestTimeout(runFn) {
+    return realtimeSetTimeout(runFn, timeout);
+  }
+  return realtimeLoop({
+    fn,
+    requestTimingFn: requestTimeout,
+    cancelTimingFn: realtimeClearTimeout,
+    queueNextImmediately
+  });
+}
+
+// exports to the `timeweb` module/object
 const on = subscribe;
 const off = unsubscribe;
 
-export { goTo, off, on, processUntilTime, realtime, replaceMediaWithBlobs, runAnimationFrames, startRealtimeSimulation, stopRealtimeSimulation, version };
+// make sure to import the user settings before initializing
+// things that might use those settings
+importGlobalSettings();
+if (exportDocument) {
+  initializeMediaHandler();
+  initializeAnimatedSVGHandler();
+  overwriteElementAnimate();
+  initializeCSSHandler();
+  initializeDOMHandler();
+  initializeAnimationPoller();
+}
+
+export { setUserSettings as config, convertTimingScale, goTo, increment, off, on, processUntilTime, realtime, animationLoop as realtimeAnimationLoop, timeoutLoop as realtimeTimeoutLoop, replaceMediaWithBlobs, runAnimationFrames, startRealtimeSimulation, stopRealtimeSimulation, version };
